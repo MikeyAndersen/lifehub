@@ -1,0 +1,74 @@
+/* ============================================
+   LifeHub — design tokens
+   Dark theme only. Én accentfarve som "signal".
+   ============================================ */
+
+:root {
+  /* --- Farver: flader --- */
+  --lh-bg:            #0A1120;  /* app-baggrund (interaktiv) */
+  --lh-bg-space:      #060B16;  /* ambient / dyb rum-baggrund */
+  --lh-surface:       #0F1728;  /* kort */
+  --lh-surface-raised:#101A2E;  /* hero-kort (top af gradient) */
+  --lh-line:          rgba(148, 163, 190, 0.13);  /* kort-kanter */
+  --lh-line-soft:     rgba(148, 163, 190, 0.08);  /* rækkedelere */
+
+  /* --- Farver: tekst --- */
+  --lh-text:          #E9EEF7;  /* primær */
+  --lh-text-body:     #DCE4F2;  /* brødtekst */
+  --lh-text-2:        #93A0B8;  /* sekundær */
+  --lh-text-3:        #5B6A85;  /* dæmpet / meta */
+  --lh-text-4:        #3E4B63;  /* svagest (fodnoter, urskive-markører) */
+
+  /* --- Signal (én accent) --- */
+  --lh-signal:        #F0A22E;  /* afgangstavle-rav: tider, overskredet, "nu" */
+  --lh-signal-glow:   rgba(240, 162, 46, 0.5);
+  --lh-signal-dim:    rgba(240, 162, 46, 0.22); /* orbit-ringe, selektion */
+
+  /* --- Scene (kun ambient-vinger) --- */
+  --lh-planet-dust:   #C08A4A;
+  --lh-planet-slate:  #6E7F9C;
+  --lh-planet-deep:   #4E5F7E;
+  --lh-planet-faint:  #55627A;
+  --lh-star:          #AFC0DC;
+
+  /* --- Typografi --- */
+  --lh-font-ui:       'Space Grotesk', sans-serif;
+  --lh-font-mono:     'IBM Plex Mono', monospace;  /* alle tal og tider, tabular-nums */
+
+  /* Typeskala — interaktiv */
+  --lh-fs-meta:       11.5px;
+  --lh-fs-label:      13px;
+  --lh-fs-body-s:     13.5px;
+  --lh-fs-body:       14.5px;
+  --lh-fs-brief:      18px;
+  --lh-fs-title:      19px;
+
+  /* Typeskala — ambient (læsbar på 3 m) */
+  --lh-fs-amb-meta:   22px;
+  --lh-fs-amb-task:   25px;
+  --lh-fs-amb-row:    29px;
+  --lh-fs-amb-brief:  36px;
+  --lh-fs-amb-clock:  132px;
+
+  /* --- Spacing --- */
+  --lh-sp-1:  4px;
+  --lh-sp-2:  8px;
+  --lh-sp-3:  12px;
+  --lh-sp-4:  16px;
+  --lh-sp-5:  20px;
+  --lh-sp-6:  24px;
+  --lh-sp-7:  32px;
+  --lh-sp-8:  48px;
+  --lh-sp-9:  64px;
+
+  /* --- Form --- */
+  --lh-radius-card:   12px;
+  --lh-radius-check:  6px;
+
+  /* --- Bevægelse ---
+     Én orkestreret scene: orbital drift 260–1400 s/omløb,
+     stjerne-glimt 6–15 s. Alt slukkes ved prefers-reduced-motion. */
+  --lh-orbit-min:     260s;
+  --lh-orbit-max:     1400s;
+  --lh-twinkle:       6s;
+}

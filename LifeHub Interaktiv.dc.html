@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #0A1120; }
+    ::selection { background: rgba(240,162,46,0.28); }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  </style>
+</helmet>
+
+<div style="min-height:100vh; background:#0A1120; color:#E9EEF7; font-family:'Space Grotesk',sans-serif; -webkit-font-smoothing:antialiased;">
+  <div style="max-width:1240px; margin:0 auto; padding:clamp(16px,3vw,36px) clamp(14px,3vw,32px) 56px;">
+
+    <!-- Top bar -->
+    <div style="display:flex; align-items:baseline; justify-content:space-between; gap:16px; margin-bottom:clamp(18px,3vw,30px);" data-screen-label="Interaktiv visning">
+      <div style="display:flex; align-items:baseline; gap:12px;">
+        <div style="font-size:19px; font-weight:600; letter-spacing:0.04em;">LifeHub</div>
+        <div style="width:6px; height:6px; border-radius:50%; background:#F0A22E; align-self:center;"></div>
+      </div>
+      <div style="display:flex; align-items:baseline; gap:18px;">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:14px; color:#93A0B8; font-variant-numeric:tabular-nums;">{{ clock }}</div>
+        <a href="LifeHub Ambient.dc.html" style="font-size:13px; color:#5B6A85; text-decoration:none; border-bottom:1px solid rgba(148,163,190,0.25); padding-bottom:1px;">Ambient visning</a>
+      </div>
+    </div>
+
+    <!-- Widget grid -->
+    <!-- Dagens brief (hero) -->
+    <div style="margin-bottom:14px; background:linear-gradient(180deg, #101A2E 0%, #0E1626 100%); border:1px solid rgba(148,163,190,0.15); border-radius:12px; padding:clamp(20px,3vw,30px) clamp(20px,3.4vw,34px);">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; font-variant-numeric:tabular-nums; display:flex; flex-wrap:wrap; gap:8px 0; margin-bottom:16px;">
+          <span style="color:#F0A22E;">{{ dateLine }}</span>
+          <span style="color:#5B6A85;">&nbsp;·&nbsp;</span><span style="color:#93A0B8;">18° letskyet</span>
+          <span style="color:#5B6A85;">&nbsp;·&nbsp;</span><span style="color:#93A0B8;">elpris 1,42 kr/kWh · lav</span>
+        </div>
+        <div style="font-size:clamp(16px,1.6vw,18px); line-height:1.68; color:#DCE4F2; max-width:70ch; text-wrap:pretty;">
+          Godmorgen. Alma skal til svømning kl. 16, og Oscar har fodbold halv seks — huskeposen står i entréen.
+          Elprisen er lav hele eftermiddagen, så det er en god dag at sætte en vask over.
+          Vejret holder tørt til hen på aftenen; en let jakke er nok.
+          Farmor Kirsten har fødselsdag på søndag, og gaven mangler stadig — den står øverst på opgavelisten.
+        </div>
+      </div>
+
+    <div style="display:flex; flex-wrap:wrap; gap:14px; align-items:flex-start;">
+
+      <!-- Kalender -->
+      <div style="flex:1 1 330px; min-width:min(100%, 330px); background:#0F1728; border:1px solid rgba(148,163,190,0.13); border-radius:12px; padding:20px 22px;">
+        <div style="font-size:13px; font-weight:500; color:#93A0B8; letter-spacing:0.02em; margin-bottom:14px;">Kalender</div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <sc-for list="{{ days }}" as="day" hint-placeholder-count="3">
+            <div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#5B6A85; letter-spacing:0.06em; margin-bottom:8px;">{{ day.label }}</div>
+              <div style="display:flex; flex-direction:column;">
+                <sc-for list="{{ day.events }}" as="ev" hint-placeholder-count="2">
+                  <div style="display:grid; grid-template-columns:56px 1fr; gap:12px; padding:7px 0; border-top:1px solid rgba(148,163,190,0.08); cursor:pointer;" style-hover="background:rgba(148,163,190,0.05)">
+                    <div style="font-family:'IBM Plex Mono',monospace; font-size:14px; color:#F0A22E; font-variant-numeric:tabular-nums;">{{ ev.time }}</div>
+                    <div style="min-width:0;">
+                      <div style="font-size:14.5px; color:#E9EEF7;">{{ ev.title }}</div>
+                      <div style="font-size:12.5px; color:#5B6A85; margin-top:1px;">{{ ev.loc }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- Opgaver -->
+      <div style="flex:1 1 330px; min-width:min(100%, 330px); background:#0F1728; border:1px solid rgba(148,163,190,0.13); border-radius:12px; padding:20px 22px;">
+        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;">
+          <div style="font-size:13px; font-weight:500; color:#93A0B8; letter-spacing:0.02em;">Opgaver</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#5B6A85;">{{ openCount }} åbne</div>
+        </div>
+        <div style="display:flex; flex-direction:column;">
+          <sc-for list="{{ tasks }}" as="t" hint-placeholder-count="4">
+            <div onClick="{{ t.toggle }}" style="display:grid; grid-template-columns:22px 1fr auto; gap:12px; align-items:center; padding:9px 0; border-top:1px solid rgba(148,163,190,0.08); cursor:pointer;" style-hover="background:rgba(148,163,190,0.05)">
+              <div style="width:20px; height:20px; border-radius:6px; border:1.5px solid {{ t.boxBorder }}; background:{{ t.boxBg }}; display:flex; align-items:center; justify-content:center; font-size:12px; color:#93A0B8;">{{ t.check }}</div>
+              <div style="font-size:14.5px; color:{{ t.titleColor }}; text-decoration:{{ t.deco }};">{{ t.title }}</div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:{{ t.dueColor }}; font-variant-numeric:tabular-nums; display:flex; align-items:center; gap:6px;">
+                <sc-if value="{{ t.overdue }}" hint-placeholder-val="{{ false }}"><span style="width:6px; height:6px; border-radius:50%; background:#F0A22E; display:inline-block;"></span></sc-if>
+                <span>{{ t.dueLabel }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- Fødselsdage -->
+      <div style="flex:1 1 330px; min-width:min(100%, 330px); background:#0F1728; border:1px solid rgba(148,163,190,0.13); border-radius:12px; padding:20px 22px;">
+        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;">
+          <div style="font-size:13px; font-weight:500; color:#93A0B8; letter-spacing:0.02em;">Fødselsdage</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#5B6A85;">næste 30 dage</div>
+        </div>
+        <div style="display:flex; flex-direction:column;">
+          <sc-for list="{{ birthdays }}" as="b" hint-placeholder-count="3">
+            <div style="display:grid; grid-template-columns:100px 1fr auto; gap:12px; align-items:baseline; padding:9px 0; border-top:1px solid rgba(148,163,190,0.08);">
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; color:#93A0B8; font-variant-numeric:tabular-nums; white-space:nowrap;">{{ b.dateLabel }}</div>
+              <div style="font-size:14.5px; color:#E9EEF7;">{{ b.name }}</div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#5B6A85;">fylder {{ b.age }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- Middag i aften -->
+      <div style="flex:1 1 330px; min-width:min(100%, 330px); background:#0F1728; border:1px solid rgba(148,163,190,0.13); border-radius:12px; padding:20px 22px;">
+        <div style="font-size:13px; font-weight:500; color:#93A0B8; letter-spacing:0.02em; margin-bottom:14px;">Middag i aften</div>
+        <div style="font-size:19px; font-weight:500; color:#E9EEF7; margin-bottom:6px;">Pasta med kødsauce</div>
+        <div style="font-size:13.5px; color:#93A0B8; line-height:1.5;">Jonas laver mad</div>
+        <div style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(148,163,190,0.08); font-size:13px; color:#5B6A85;">Husk: tag kødet ud af fryseren i eftermiddag</div>
+      </div>
+
+      <!-- Afgange -->
+      <div style="flex:1 1 330px; min-width:min(100%, 330px); background:#0F1728; border:1px solid rgba(148,163,190,0.13); border-radius:12px; padding:20px 22px;">
+        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;">
+          <div style="font-size:13px; font-weight:500; color:#93A0B8; letter-spacing:0.02em;">Afgange</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#5B6A85;">{{ station }} → København H</div>
+        </div>
+        <div style="display:flex; flex-direction:column;">
+          <sc-for list="{{ departures }}" as="d" hint-placeholder-count="3">
+            <div style="display:grid; grid-template-columns:64px 1fr; gap:12px; align-items:baseline; padding:8px 0; border-top:1px solid rgba(148,163,190,0.08);">
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:15px; color:#F0A22E; font-variant-numeric:tabular-nums;">{{ d.time }}</div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:#93A0B8; font-variant-numeric:tabular-nums;">{{ d.rel }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- Økonomi (privat) -->
+      <sc-if value="{{ okoVisible }}" hint-placeholder-val="{{ true }}">
+        <div style="flex:1 1 330px; min-width:min(100%, 330px); background:#0F1728; border:1px solid rgba(148,163,190,0.13); border-radius:12px; padding:20px 22px;">
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;">
+            <div style="display:flex; align-items:baseline; gap:10px;">
+              <div style="font-size:13px; font-weight:500; color:#93A0B8; letter-spacing:0.02em;">Økonomi</div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#5B6A85; border:1px solid rgba(148,163,190,0.2); border-radius:4px; padding:1px 6px;">privat</div>
+            </div>
+            <div onClick="{{ toggleOko }}" style="font-size:12px; color:#5B6A85; cursor:pointer; border-bottom:1px solid rgba(148,163,190,0.25);" style-hover="color:#93A0B8">Skjul</div>
+          </div>
+          <div style="display:flex; flex-direction:column;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; padding:8px 0; border-top:1px solid rgba(148,163,190,0.08);">
+              <div style="font-size:14px; color:#E9EEF7;">Budgetkonto</div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:14.5px; color:#E9EEF7; font-variant-numeric:tabular-nums;">14.382 kr.</div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline; padding:8px 0; border-top:1px solid rgba(148,163,190,0.08);">
+              <div style="font-size:14px; color:#E9EEF7;">Opsparing</div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:14.5px; color:#E9EEF7; font-variant-numeric:tabular-nums;">86.150 kr.</div>
+            </div>
+          </div>
+          <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(148,163,190,0.08);">
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#5B6A85; letter-spacing:0.06em; margin-bottom:6px;">Seneste</div>
+            <sc-for list="{{ expenses }}" as="e" hint-placeholder-count="3">
+              <div style="display:flex; justify-content:space-between; align-items:baseline; padding:5px 0;">
+                <div style="font-size:13.5px; color:#93A0B8;">{{ e.name }}</div>
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; color:#93A0B8; font-variant-numeric:tabular-nums;">{{ e.amount }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(148,163,190,0.08); display:flex; align-items:center; gap:8px;">
+            <div style="width:7px; height:7px; border-radius:50%; background:#93A0B8;"></div>
+            <div style="font-size:13px; color:#93A0B8;">På sporet · 8 % af juli-budgettet brugt</div>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+
+    <!-- Footer -->
+    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:28px; padding-top:16px; border-top:1px solid rgba(148,163,190,0.08);">
+      <div style="font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#3E4B63;">LifeHub · selvhostet · familien Ravn</div>
+      <sc-if value="{{ okoHidden }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ toggleOko }}" style="font-size:12px; color:#5B6A85; cursor:pointer; border-bottom:1px solid rgba(148,163,190,0.25);" style-hover="color:#93A0B8">Vis økonomi</div>
+      </sc-if>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;visOkonomi&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Widgets&quot;}, &quot;station&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;Lyngby st.&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Widgets&quot;}}">
+class Component extends DCLogic {
+  state = { done: { t4: true }, cart: {}, okoHidden: null };
+
+  componentDidMount() {
+    this._t = setInterval(() => this.forceUpdate(), 15000);
+  }
+  componentWillUnmount() { clearInterval(this._t); }
+
+  renderVals() {
+    const now = new Date();
+    const WD = ['søndag','mandag','tirsdag','onsdag','torsdag','fredag','lørdag'];
+    const WDS = ['søn','man','tir','ons','tor','fre','lør'];
+    const MO = ['januar','februar','marts','april','maj','juni','juli','august','september','oktober','november','december'];
+    const p2 = n => String(n).padStart(2, '0');
+    const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+    const dOff = off => { const d = new Date(now); d.setDate(d.getDate() + off); return d; };
+
+    const clock = p2(now.getHours()) + ':' + p2(now.getMinutes());
+    const dateLine = cap(WD[now.getDay()]) + ' ' + now.getDate() + '. ' + MO[now.getMonth()];
+
+    // Kalender — next 7 days
+    const rawEvents = [
+      { off: 0, time: '16:00', title: 'Svømning — Alma', loc: 'Lyngby svømmehal' },
+      { off: 0, time: '17:30', title: 'Fodboldtræning — Oscar', loc: 'B.93, bane 4' },
+      { off: 1, time: '09:00', title: 'Tandlæge — Jonas', loc: 'Tandklinikken, Torvet 3' },
+      { off: 1, time: '15:00', title: 'Legeaftale — Oscar hos Villads', loc: 'Sorgenfri' },
+      { off: 2, time: '10:00', title: 'Cykeltur til Dyrehaven', loc: 'Alle' },
+      { off: 3, time: '12:00', title: 'Fødselsdag hos farmor', loc: 'Holte' },
+      { off: 5, time: '19:00', title: 'Forældremøde — Alma', loc: 'Trongårdsskolen' }
+    ];
+    const dayLabel = off => {
+      const d = dOff(off);
+      const base = WD[d.getDay()] + ' ' + d.getDate() + '. ' + MO[d.getMonth()];
+      if (off === 0) return 'I dag · ' + base;
+      if (off === 1) return 'I morgen · ' + base;
+      return cap(base);
+    };
+    const days = [];
+    for (const ev of rawEvents) {
+      let day = days.find(d => d.off === ev.off);
+      if (!day) { day = { off: ev.off, label: dayLabel(ev.off), events: [] }; days.push(day); }
+      day.events.push(ev);
+    }
+
+    // Opgaver
+    const rawTasks = [
+      { id: 't1', title: 'Bestil tid til bilsyn', off: -1 },
+      { id: 't2', title: 'Køb gave til farmor', off: 0 },
+      { id: 't4', title: 'Vand tomaterne', off: 0 },
+      { id: 't3', title: 'Betal Almas svømmekontingent', off: 1 },
+      { id: 't5', title: 'Aflever biblioteksbøger', off: 2 }
+    ];
+    const dueLabel = off => {
+      if (off === -1) return 'i går';
+      if (off === 0) return 'i dag';
+      if (off === 1) return 'i morgen';
+      const d = dOff(off);
+      return WDS[d.getDay()] + ' ' + d.getDate() + '.';
+    };
+    const tasks = rawTasks.map(t => {
+      const done = !!this.state.done[t.id];
+      const overdue = !done && t.off < 0;
+      return {
+        title: t.title,
+        done, overdue,
+        check: done ? '✓' : '',
+        boxBorder: done ? 'rgba(148,163,190,0.35)' : (overdue ? 'rgba(240,162,46,0.6)' : 'rgba(148,163,190,0.4)'),
+        boxBg: done ? 'rgba(148,163,190,0.12)' : 'transparent',
+        titleColor: done ? '#5B6A85' : '#E9EEF7',
+        deco: done ? 'line-through' : 'none',
+        dueColor: overdue ? '#F0A22E' : '#5B6A85',
+        dueLabel: dueLabel(t.off),
+        toggle: () => this.setState(s => ({ done: { ...s.done, [t.id]: !s.done[t.id] } }))
+      };
+    });
+    const openCount = tasks.filter(t => !t.done).length;
+
+    // Fødselsdage
+    const rawBd = [
+      { off: 3, name: 'Farmor Kirsten', age: 72 },
+      { off: 12, name: 'Villads — Oscars ven', age: 7 },
+      { off: 26, name: 'Mette', age: 41 }
+    ];
+    const birthdays = rawBd.map(b => {
+      const d = dOff(b.off);
+      return { name: b.name, age: b.age, dateLabel: WDS[d.getDay()] + ' ' + d.getDate() + '. ' + MO[d.getMonth()].slice(0, 3) + '.' };
+    });
+
+    // Afgange — next 3 (departures at :04 :14 :24 :34 :44 :54)
+    const departures = [];
+    const t = new Date(now); t.setSeconds(0, 0);
+    while (departures.length < 3) {
+      t.setMinutes(t.getMinutes() + 1);
+      if (t.getMinutes() % 10 === 4) {
+        const diff = Math.round((t - now) / 60000);
+        departures.push({ time: p2(t.getHours()) + ':' + p2(t.getMinutes()), rel: diff <= 0 ? 'nu' : 'om ' + diff + ' min' });
+      }
+    }
+
+    // Økonomi
+    const okoHidden = this.state.okoHidden ?? !(this.props.visOkonomi ?? true);
+    const expenses = [
+      { name: 'Netto', amount: '−247 kr.' },
+      { name: 'DSB pendlerkort', amount: '−112 kr.' },
+      { name: 'Apoteket', amount: '−89 kr.' }
+    ];
+
+    return {
+      clock, dateLine, days, tasks, openCount, birthdays,
+      departures, station: this.props.station ?? 'Lyngby st.',
+      okoVisible: !okoHidden, okoHidden, expenses,
+      toggleOko: () => this.setState({ okoHidden: !okoHidden })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #060B16; overflow: hidden; }
+    @keyframes lhSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes lhTwinkle { 0%, 100% { opacity: 0.10; } 50% { opacity: 0.55; } }
+    @keyframes lhDriftA { from { transform: translate(-16px, -10px); } to { transform: translate(10px, 12px); } }
+    @keyframes lhDriftB { from { transform: translate(12px, 10px); } to { transform: translate(-10px, -12px); } }
+    @keyframes lhBreath { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+    @keyframes lhMeteorA { 0% { transform: translate(0, 0); opacity: 0; } 1.5% { opacity: 0.9; } 9% { transform: translate(-2600px, 1240px); opacity: 0; } 100% { transform: translate(-2600px, 1240px); opacity: 0; } }
+    @keyframes lhMeteorB { 0% { transform: translate(0, 0); opacity: 0; } 1.2% { opacity: 0.6; } 7% { transform: translate(2100px, -950px); opacity: 0; } 100% { transform: translate(2100px, -950px); opacity: 0; } }
+    [data-lh-motion="fra"] * { animation: none !important; }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+  </style>
+</helmet>
+
+<div style="position:fixed; inset:0; background:#060B16; display:flex; align-items:center; justify-content:center; font-family:'Space Grotesk',sans-serif; -webkit-font-smoothing:antialiased;">
+
+  <!-- Stage, scaled to fit the window -->
+  <div data-screen-label="Ambient visning" data-lh-motion="{{ motionAttr }}" style="position:relative; flex:none; width:{{ stageW }}px; height:{{ stageH }}px; overflow:hidden; background:radial-gradient(1400px 1000px at 50% 45%, #0A1120 0%, #070D19 55%, #060B16 100%); display:flex; align-items:center; justify-content:center; transform:scale({{ fitScale }});">
+
+    <!-- ===== Wings ===== -->
+    <sc-if value="{{ showWings }}" hint-placeholder-val="{{ true }}">
+      <div style="position:absolute; left:0; top:0; width:1660px; height:1440px; overflow:hidden;">
+        <div style="position:absolute; inset:-30px; animation:lhDriftA 110s ease-in-out infinite alternate;">
+        {{ starsLeft }}
+        <div style="position:absolute; left:510px; top:550px; width:420px; height:420px; border-radius:50%; background:radial-gradient(circle, rgba(240,162,46,0.15) 0%, rgba(240,162,46,0) 70%); animation:lhBreath 36s ease-in-out infinite;"></div>
+        <div style="position:absolute; left:675px; top:715px; width:90px; height:90px; border-radius:50%; background:radial-gradient(circle at 36% 34%, #FFE0AC 0%, #F0A22E 58%, #C77E1F 100%); box-shadow:0 0 60px rgba(240,162,46,0.3);"></div>
+        <div style="position:absolute; left:550px; top:590px; width:340px; height:340px; border-radius:50%; border:1px solid rgba(240,162,46,0.10);"></div>
+        <div style="position:absolute; left:450px; top:490px; width:540px; height:540px; border-radius:50%; border:1px solid rgba(148,163,190,0.10);"></div>
+        <div style="position:absolute; left:330px; top:370px; width:780px; height:780px; border-radius:50%; border:1px solid rgba(148,163,190,0.08);"></div>
+        <div style="position:absolute; left:190px; top:230px; width:1060px; height:1060px; border-radius:50%; border:1px solid rgba(148,163,190,0.07);"></div>
+        <div style="position:absolute; left:30px; top:70px; width:1380px; height:1380px; border-radius:50%; border:1px solid rgba(240,162,46,0.06);"></div>
+        <div style="position:absolute; left:-140px; top:-100px; width:1720px; height:1720px; border-radius:50%; border:1px solid rgba(148,163,190,0.05);"></div>
+        <div style="position:absolute; left:720px; top:760px; width:0; height:0; animation:lhSpin 260s linear infinite;"><div style="position:absolute; transform:rotate(40deg) translateX(170px); width:12px; height:12px; margin:-6px 0 0 -6px; border-radius:50%; background:#C08A4A;"></div></div>
+        <div style="position:absolute; left:720px; top:760px; width:0; height:0; animation:lhSpin 420s linear infinite;"><div style="position:absolute; transform:rotate(160deg) translateX(270px); width:8px; height:8px; margin:-4px 0 0 -4px; border-radius:50%; background:#6E7F9C;"></div></div>
+        <div style="position:absolute; left:720px; top:760px; width:0; height:0; animation:lhSpin 640s linear infinite reverse;"><div style="position:absolute; transform:rotate(255deg) translateX(390px); width:15px; height:15px; margin:-7px 0 0 -7px; border-radius:50%; background:#4E5F7E;"></div></div>
+        <div style="position:absolute; left:720px; top:760px; width:0; height:0; animation:lhSpin 960s linear infinite;"><div style="position:absolute; transform:rotate(105deg) translateX(530px); width:10px; height:10px; margin:-5px 0 0 -5px; border-radius:50%; background:#6E7F9C;"></div></div>
+        <div style="position:absolute; left:720px; top:760px; width:0; height:0; animation:lhSpin 1300s linear infinite;"><div style="position:absolute; transform:rotate(320deg) translateX(690px); width:7px; height:7px; margin:-3px 0 0 -3px; border-radius:50%; background:#55627A;"></div></div>
+        </div>
+      </div>
+
+      <div style="position:absolute; right:0; top:0; width:1660px; height:1440px; overflow:hidden;">
+        <div style="position:absolute; inset:-30px; animation:lhDriftB 140s ease-in-out infinite alternate;">
+        {{ starsRight }}
+        <div style="position:absolute; left:750px; top:490px; width:380px; height:380px; border-radius:50%; background:radial-gradient(circle, rgba(240,162,46,0.13) 0%, rgba(240,162,46,0) 70%); animation:lhBreath 44s ease-in-out infinite;"></div>
+        <div style="position:absolute; left:908px; top:648px; width:64px; height:64px; border-radius:50%; background:radial-gradient(circle at 36% 34%, #FFE0AC 0%, #F0A22E 58%, #C77E1F 100%); box-shadow:0 0 46px rgba(240,162,46,0.3);"></div>
+        <div style="position:absolute; left:790px; top:530px; width:300px; height:300px; border-radius:50%; border:1px solid rgba(240,162,46,0.10);"></div>
+        <div style="position:absolute; left:700px; top:440px; width:480px; height:480px; border-radius:50%; border:1px solid rgba(148,163,190,0.10);"></div>
+        <div style="position:absolute; left:590px; top:330px; width:700px; height:700px; border-radius:50%; border:1px solid rgba(148,163,190,0.08);"></div>
+        <div style="position:absolute; left:460px; top:200px; width:960px; height:960px; border-radius:50%; border:1px solid rgba(148,163,190,0.07);"></div>
+        <div style="position:absolute; left:300px; top:40px; width:1280px; height:1280px; border-radius:50%; border:1px solid rgba(240,162,46,0.06);"></div>
+        <div style="position:absolute; left:120px; top:-140px; width:1640px; height:1640px; border-radius:50%; border:1px solid rgba(148,163,190,0.05);"></div>
+        <div style="position:absolute; left:940px; top:680px; width:0; height:0; animation:lhSpin 300s linear infinite;"><div style="position:absolute; transform:rotate(210deg) translateX(150px); width:10px; height:10px; margin:-5px 0 0 -5px; border-radius:50%; background:#C08A4A;"></div></div>
+        <div style="position:absolute; left:940px; top:680px; width:0; height:0; animation:lhSpin 480s linear infinite;"><div style="position:absolute; transform:rotate(70deg) translateX(240px); margin:-7px 0 0 -7px;"><div style="width:14px; height:14px; border-radius:50%; background:#A9B7CE;"></div><div style="position:absolute; left:-9px; top:2px; width:32px; height:11px; border-radius:50%; border:1px solid rgba(169,183,206,0.45); transform:rotate(-24deg);"></div></div></div>
+        <div style="position:absolute; left:940px; top:680px; width:0; height:0; animation:lhSpin 720s linear infinite reverse;"><div style="position:absolute; transform:rotate(330deg) translateX(350px); width:8px; height:8px; margin:-4px 0 0 -4px; border-radius:50%; background:#6E7F9C;"></div></div>
+        <div style="position:absolute; left:940px; top:680px; width:0; height:0; animation:lhSpin 1040s linear infinite;"><div style="position:absolute; transform:rotate(130deg) translateX(480px); width:12px; height:12px; margin:-6px 0 0 -6px; border-radius:50%; background:#4E5F7E;"></div></div>
+        <div style="position:absolute; left:940px; top:680px; width:0; height:0; animation:lhSpin 1400s linear infinite;"><div style="position:absolute; transform:rotate(20deg) translateX(640px); width:7px; height:7px; margin:-3px 0 0 -3px; border-radius:50%; background:#55627A;"></div></div>
+        </div>
+      </div>
+
+      <!-- Meteors — rare, quiet streaks across the whole stage (behind the core) -->
+      <div style="position:absolute; left:3400px; top:-80px; opacity:0; animation:lhMeteorA 52s linear -10s infinite;">
+        <div style="width:130px; height:2px; border-radius:2px; background:linear-gradient(90deg, rgba(233,238,247,0) 0%, rgba(233,238,247,0.85) 82%, #FFFFFF 100%); transform:rotate(154.5deg); box-shadow:0 0 8px rgba(233,238,247,0.35);"></div>
+      </div>
+      <div style="position:absolute; left:600px; top:1350px; opacity:0; animation:lhMeteorB 73s linear -40s infinite;">
+        <div style="width:90px; height:1.5px; border-radius:2px; background:linear-gradient(90deg, rgba(175,192,220,0) 0%, rgba(175,192,220,0.7) 82%, #E9EEF7 100%); transform:rotate(-24.3deg); box-shadow:0 0 6px rgba(175,192,220,0.3);"></div>
+      </div>
+    </sc-if>
+
+    <!-- Sparse stars behind the center zone -->
+    <div style="position:absolute; left:50%; top:0; width:1800px; height:100%; transform:translateX(-50%);">{{ starsCenter }}</div>
+
+    <!-- ===== Center zone (1800px functional core) ===== -->
+    <div style="position:relative; flex:none; width:1800px; height:1440px; transform:scale({{ centerScale }}); display:flex; align-items:center; gap:56px; padding:0 40px; box-sizing:border-box;">
+
+      <!-- Orbit clock (signature) -->
+      <div style="position:relative; flex:none; width:780px; height:780px;">
+        <div style="position:absolute; left:80px; top:80px; width:620px; height:620px; border-radius:50%; border:1px solid rgba(240,162,46,0.22);"></div>
+        <div style="position:absolute; left:150px; top:150px; width:480px; height:480px; border-radius:50%; border:1px solid rgba(148,163,190,0.10);"></div>
+        <sc-for list="{{ hourMarks }}" as="m" hint-placeholder-count="4">
+          <div style="position:absolute; left:{{ m.x }}px; top:{{ m.y }}px; transform:translate(-50%,-50%); font-family:'IBM Plex Mono',monospace; font-size:15px; color:#3E4B63; font-variant-numeric:tabular-nums;">{{ m.label }}</div>
+        </sc-for>
+        <div style="position:absolute; left:{{ nowTick.x }}px; top:{{ nowTick.y }}px; width:4px; height:22px; border-radius:2px; background:#F0A22E; box-shadow:0 0 12px rgba(240,162,46,0.6); transform:translate(-50%,-50%) rotate({{ nowTick.rot }}deg);"></div>
+        <sc-for list="{{ orbitPlanets }}" as="p" hint-placeholder-count="3">
+          <div style="position:absolute; left:{{ p.x }}px; top:{{ p.y }}px; width:{{ p.size }}px; height:{{ p.size }}px; transform:translate(-50%,-50%); border-radius:50%; background:{{ p.bg }}; border:{{ p.border }}; box-shadow:{{ p.glow }}; opacity:{{ p.op }};"></div>
+          <div style="position:absolute; left:{{ p.lx }}px; top:{{ p.ly }}px; width:210px; transform:translate(-50%,-50%); text-align:center; opacity:{{ p.op }};">
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:17px; color:{{ p.timeColor }}; font-variant-numeric:tabular-nums;">{{ p.time }}</div>
+            <div style="font-size:18px; color:#93A0B8; line-height:1.25;">{{ p.title }}</div>
+          </div>
+        </sc-for>
+        <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:132px; font-weight:300; color:#E9EEF7; font-variant-numeric:tabular-nums; letter-spacing:-0.01em; line-height:1;">{{ clock }}</div>
+          <div style="font-size:29px; color:#93A0B8;">{{ dateLine }}</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:18px; color:#5B6A85;">{{ ugeLine }}</div>
+        </div>
+      </div>
+
+      <!-- Functional column -->
+      <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:34px;">
+        <div style="font-size:36px; line-height:1.48; color:#DCE4F2; text-wrap:pretty; max-width:34ch;">
+          Godmorgen. Alma har svømning kl. 16 og Oscar fodbold halv seks — huskeposen står i entréen. Elprisen er lav i eftermiddag, og vejret holder tørt til aften.
+        </div>
+
+        <div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:16px; letter-spacing:0.1em; color:#5B6A85; margin-bottom:6px;">Kalender</div>
+          <div style="display:flex; flex-direction:column;">
+            <sc-for list="{{ eventRows }}" as="r" hint-placeholder-count="5">
+              <div style="display:grid; grid-template-columns:220px 1fr auto; gap:24px; align-items:baseline; padding:12px 0; border-top:1px solid rgba(148,163,190,0.10);">
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:29px; font-variant-numeric:tabular-nums;"><span style="color:#5B6A85;">{{ r.prefix }}</span><span style="color:{{ r.timeColor }};">{{ r.time }}</span></div>
+                <div style="font-size:29px; font-weight:500; color:#E9EEF7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ r.title }}</div>
+                <div style="font-size:20px; color:#5B6A85;">{{ r.loc }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:16px; letter-spacing:0.1em; color:#5B6A85; margin-bottom:6px;">Opgaver</div>
+          <div style="display:flex; flex-direction:column;">
+            <sc-for list="{{ taskRows }}" as="t" hint-placeholder-count="3">
+              <div style="display:grid; grid-template-columns:20px 1fr auto; gap:20px; align-items:baseline; padding:9px 0; border-top:1px solid rgba(148,163,190,0.10);">
+                <div style="width:9px; height:9px; border-radius:50%; background:{{ t.dot }}; align-self:center;"></div>
+                <div style="font-size:25px; color:#DCE4F2;">{{ t.title }}</div>
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:19px; color:{{ t.dueColor }}; font-variant-numeric:tabular-nums;">{{ t.due }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:22px; color:#93A0B8; font-variant-numeric:tabular-nums; padding-top:18px; border-top:1px solid rgba(148,163,190,0.10); white-space:nowrap;">18° letskyet&nbsp;&nbsp;·&nbsp;&nbsp;elpris 1,42 kr/kWh · lav&nbsp;&nbsp;·&nbsp;&nbsp;Lyngby st. {{ depLine }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview controls (not part of the wallpaper) -->
+  <div style="position:fixed; right:16px; bottom:14px; display:flex; align-items:center; gap:14px; font-family:'IBM Plex Mono',monospace; font-size:12px; z-index:10; opacity:0.55;" style-hover="opacity:1">
+    <a href="LifeHub Interaktiv.dc.html" style="color:#5B6A85; text-decoration:none; border-bottom:1px solid rgba(148,163,190,0.3); padding-bottom:1px;">Interaktiv visning</a>
+    <div onClick="{{ setUltrawide }}" style="color:{{ uwColor }}; cursor:pointer;">5120×1440</div>
+    <div onClick="{{ setTablet }}" style="color:{{ tabColor }}; cursor:pointer;">tablet 16:10</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;motion&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Scene&quot;}, &quot;visning&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;ultrawide&quot;, &quot;options&quot;: [&quot;ultrawide&quot;, &quot;tablet&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Scene&quot;}}">
+class Component extends DCLogic {
+  state = { scale: 0.24, mode: null };
+
+  componentDidMount() {
+    this._fit = () => this.forceUpdate();
+    window.addEventListener('resize', this._fit);
+    this._t = setInterval(() => this.forceUpdate(), 1000);
+    this.forceUpdate();
+  }
+  componentWillUnmount() {
+    window.removeEventListener('resize', this._fit);
+    clearInterval(this._t);
+  }
+
+  _mkStars(seed, w, h, count, big) {
+    let a = seed >>> 0;
+    const rnd = () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const kids = [];
+    for (let i = 0; i < count; i++) {
+      const s = (rnd() * (big ? 1.8 : 1.4) + 0.8).toFixed(1) + 'px';
+      const tw = rnd() < 0.16;
+      kids.push(React.createElement('div', {
+        key: i,
+        style: {
+          position: 'absolute', left: (rnd() * w).toFixed(0) + 'px', top: (rnd() * h).toFixed(0) + 'px',
+          width: s, height: s, borderRadius: '50%', background: '#AFC0DC',
+          opacity: tw ? 0.4 : (0.08 + rnd() * 0.32).toFixed(2),
+          animation: tw ? ('lhTwinkle ' + (6 + rnd() * 9).toFixed(1) + 's ease-in-out ' + (-rnd() * 12).toFixed(1) + 's infinite') : 'none'
+        }
+      }));
+    }
+    return React.createElement('div', { style: { position: 'absolute', inset: 0 } }, kids);
+  }
+
+  renderVals() {
+    const now = new Date();
+    const WD = ['søndag','mandag','tirsdag','onsdag','torsdag','fredag','lørdag'];
+    const WDS = ['søn','man','tir','ons','tor','fre','lør'];
+    const MO = ['januar','februar','marts','april','maj','juni','juli','august','september','oktober','november','december'];
+    const p2 = n => String(n).padStart(2, '0');
+    const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+    // Mode + fit
+    const mode = this.state.mode ?? (this.props.visning ?? 'ultrawide');
+    const tablet = mode === 'tablet';
+    const stageW = tablet ? 1920 : 5120;
+    const stageH = tablet ? 1200 : 1440;
+    const fitScale = Math.min(window.innerWidth / stageW, window.innerHeight / stageH).toFixed(4);
+
+    // Clock
+    const clock = p2(now.getHours()) + ':' + p2(now.getMinutes());
+    const dateLine = cap(WD[now.getDay()]) + ' ' + now.getDate() + '. ' + MO[now.getMonth()] + ' ' + now.getFullYear();
+    const d0 = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+    const dayNum = (d0.getUTCDay() + 6) % 7;
+    d0.setUTCDate(d0.getUTCDate() - dayNum + 3);
+    const firstThu = new Date(Date.UTC(d0.getUTCFullYear(), 0, 4));
+    const week = 1 + Math.round(((d0 - firstThu) / 86400000 - 3 + ((firstThu.getUTCDay() + 6) % 7)) / 7);
+    const ugeLine = 'uge ' + week;
+
+    // Orbit clock geometry — 24h dial, midnight top, cx/cy 390
+    const CX = 390, CY = 390, R = 310;
+    const pos = (hours, r) => {
+      const th = (hours / 24) * Math.PI * 2;
+      return { x: CX + r * Math.sin(th), y: CY - r * Math.cos(th), deg: (hours / 24) * 360 };
+    };
+    const hourMarks = [0, 6, 12, 18].map(h => {
+      const q = pos(h, 352);
+      return { label: p2(h), x: q.x.toFixed(0), y: q.y.toFixed(0) };
+    });
+    const nowH = now.getHours() + now.getMinutes() / 60;
+    const nt = pos(nowH, R);
+    const nowTick = { x: nt.x.toFixed(0), y: nt.y.toFixed(0), rot: nt.deg.toFixed(1) };
+
+    const todayEv = [
+      { time: '16:00', title: 'Svømning — Alma' },
+      { time: '17:30', title: 'Fodbold — Oscar' }
+    ];
+    const orbitPlanets = [];
+    for (const ev of todayEv) {
+      const h = parseInt(ev.time) + parseInt(ev.time.slice(3)) / 60;
+      const until = h - nowH;
+      const past = until < 0;
+      const r = past ? 240 : R - 70 * Math.max(0, Math.min(1, 1 - until / 4));
+      const q = pos(h, r);
+      const lq = pos(h, r + 62);
+      orbitPlanets.push({
+        x: q.x.toFixed(0), y: q.y.toFixed(0), size: past ? 10 : 13,
+        bg: past ? '#5B6A85' : '#F0A22E', border: 'none',
+        glow: past ? 'none' : '0 0 14px rgba(240,162,46,0.5)',
+        op: past ? 0.35 : 1,
+        lx: lq.x.toFixed(0), ly: lq.y.toFixed(0),
+        time: ev.time, title: ev.title,
+        timeColor: past ? '#5B6A85' : '#F0A22E'
+      });
+    }
+    for (const s of [{ t: 4.52, label: 'solopgang', time: '04:31' }, { t: 21.95, label: 'solnedgang', time: '21:57' }]) {
+      const q = pos(s.t, R);
+      const lq = pos(s.t, R + 56);
+      orbitPlanets.push({
+        x: q.x.toFixed(0), y: q.y.toFixed(0), size: 9,
+        bg: 'transparent', border: '1.5px solid rgba(240,162,46,0.55)', glow: 'none', op: 0.8,
+        lx: lq.x.toFixed(0), ly: lq.y.toFixed(0),
+        time: s.time, title: s.label, timeColor: '#5B6A85'
+      });
+    }
+
+    // Event rows (next 6 across days)
+    const rawEvents = [
+      { off: 0, time: '16:00', title: 'Svømning — Alma', loc: 'Lyngby svømmehal' },
+      { off: 0, time: '17:30', title: 'Fodboldtræning — Oscar', loc: 'B.93, bane 4' },
+      { off: 1, time: '09:00', title: 'Tandlæge — Jonas', loc: 'Tandklinikken' },
+      { off: 1, time: '15:00', title: 'Legeaftale — Oscar hos Villads', loc: 'Sorgenfri' },
+      { off: 2, time: '10:00', title: 'Cykeltur til Dyrehaven', loc: 'Alle' },
+      { off: 3, time: '12:00', title: 'Fødselsdag hos farmor', loc: 'Holte' }
+    ];
+    const eventRows = rawEvents.map(ev => {
+      const d = new Date(now); d.setDate(d.getDate() + ev.off);
+      return {
+        prefix: ev.off === 0 ? '' : WDS[d.getDay()] + ' ',
+        time: ev.time,
+        timeColor: ev.off === 0 ? '#F0A22E' : '#93A0B8',
+        title: ev.title, loc: ev.loc
+      };
+    });
+
+    // Tasks (top 3)
+    const taskRows = [
+      { title: 'Bestil tid til bilsyn', due: 'i går', overdue: true },
+      { title: 'Køb gave til farmor', due: 'i dag', overdue: false },
+      { title: 'Betal Almas svømmekontingent', due: 'i morgen', overdue: false }
+    ].map(t => ({
+      title: t.title, due: t.due,
+      dot: t.overdue ? '#F0A22E' : 'rgba(148,163,190,0.35)',
+      dueColor: t.overdue ? '#F0A22E' : '#5B6A85'
+    }));
+
+    // Departures for meta-line
+    const deps = [];
+    const dt = new Date(now); dt.setSeconds(0, 0);
+    while (deps.length < 2) {
+      dt.setMinutes(dt.getMinutes() + 1);
+      if (dt.getMinutes() % 10 === 4) deps.push(p2(dt.getHours()) + ':' + p2(dt.getMinutes()));
+    }
+    const depLine = deps.join(' · ');
+
+    // Stars (memoized — animation state survives re-render)
+    this._sl = this._sl || this._mkStars(1337, 1660, 1440, 150, true);
+    this._sr = this._sr || this._mkStars(9021, 1660, 1440, 150, true);
+    this._sc = this._sc || this._mkStars(4242, 1800, 1440, 45, false);
+
+    return {
+      stageW, stageH, fitScale,
+      showWings: !tablet,
+      centerScale: tablet ? 0.833 : 1,
+      motionAttr: (this.props.motion ?? true) ? 'til' : 'fra',
+      clock, dateLine, ugeLine,
+      hourMarks, nowTick, orbitPlanets,
+      eventRows, taskRows, depLine,
+      starsLeft: this._sl, starsRight: this._sr, starsCenter: this._sc,
+      uwColor: tablet ? '#5B6A85' : '#F0A22E',
+      tabColor: tablet ? '#F0A22E' : '#5B6A85',
+      setUltrawide: () => this.setState({ mode: 'ultrawide' }),
+      setTablet: () => this.setState({ mode: 'tablet' })
+    };
+  }
+}
+</script>
+</body>
+</html>
