@@ -1,0 +1,17 @@
+# Env & secrets
+.env
+secrets/
+
+# Node / Astro
+node_modules/
+dashboard/dist/
+dashboard/.astro/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db

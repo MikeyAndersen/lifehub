@@ -1,0 +1,10 @@
+---
+import Base from '../layouts/Base.astro';
+import Dashboard from '../components/Dashboard.jsx';
+import '../styles/global.css';
+---
+<Base title="LifeHub">
+  <main class="wrap">
+    <Dashboard client:load />
+  </main>
+</Base>

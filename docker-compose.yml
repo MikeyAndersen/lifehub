@@ -1,0 +1,47 @@
+services:
+  brain:
+    build: ./brain
+    container_name: lifehub-brain
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8300:8300"
+    volumes:
+      - ./data/brain:/data
+      - ./secrets:/secrets:ro   # google token.json lives here
+    depends_on:
+      - ollama
+      - vikunja
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: lifehub-ollama
+    restart: unless-stopped
+    volumes:
+      - ./data/ollama:/root/.ollama
+    # Uncomment for NVIDIA GPU passthrough:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  vikunja:
+    image: vikunja/vikunja:latest
+    container_name: lifehub-vikunja
+    restart: unless-stopped
+    environment:
+      VIKUNJA_DATABASE_TYPE: sqlite
+      VIKUNJA_DATABASE_PATH: /db/vikunja.db
+      VIKUNJA_SERVICE_PUBLICURL: ${VIKUNJA_PUBLIC_URL:-http://localhost:3456}
+    ports:
+      - "3456:3456"
+    volumes:
+      - ./data/vikunja/files:/app/vikunja/files
+      - ./data/vikunja/db:/db
+
+  # The Astro dashboard is a static build — serve it with whatever you
+  # already use (Caddy/nginx/One.com/Cloudflare Pages). For local dev:
+  # cd dashboard && npm run dev
