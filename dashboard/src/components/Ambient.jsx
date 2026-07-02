@@ -1,12 +1,32 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { fetchDashboard } from '../lib/api.js';
-import { fmtTime, fmtDay } from '../lib/format.js';
+import OrbitClock from './ambient/OrbitClock.jsx';
+import AmbientColumn from './ambient/AmbientColumn.jsx';
 
-/* Read-only shared surface for Wallpaper Engine / kitchen tablet.
-   Never renders finance — the /api/ambient endpoint never sends it. */
+/* Ambient visning — read-only delt flade for Wallpaper Engine / køkkentablet.
+   Viser ALDRIG økonomi; /api/ambient sender det aldrig, og mock'en heller ikke.
+
+   To tilstande, valgt automatisk efter viewportens sideforhold:
+   - ultrawide (> 21:9): 5120×1440-scene med solsystem-"vinger" om midterzonen
+   - tablet (ellers):    1920×1200-scene, kun midterzonen, helt statisk       */
+
+const ULTRAWIDE_ASPECT = 21 / 9;
+
+function useViewport() {
+  const [size, setSize] = useState(null); // null indtil hydreret (SSR har intet window)
+  useEffect(() => {
+    const measure = () => setSize({ w: window.innerWidth, h: window.innerHeight });
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
+  return size;
+}
+
 export default function Ambient() {
   const [data, setData] = useState(null);
-  const [now, setNow] = useState(new Date());
+  const [now, setNow] = useState(() => new Date());
+  const size = useViewport();
 
   useEffect(() => {
     const load = () => fetchDashboard(true).then(setData).catch(() => {});
@@ -16,35 +36,30 @@ export default function Ambient() {
     return () => { clearInterval(dataId); clearInterval(clockId); };
   }, []);
 
-  const hhmm = now.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
-  const dateStr = now.toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long' });
+  // Dagens tidsatte aftaler er planeter på urskiven.
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const todayEvents = useMemo(
+    () => (data?.events || []).filter((e) => !e.all_day && e.start.slice(0, 10) === todayKey),
+    [data, todayKey],
+  );
+
+  if (!size) return null;
+
+  const ultrawide = size.w / size.h > ULTRAWIDE_ASPECT;
+  const stageW = ultrawide ? 5120 : 1920;
+  const stageH = ultrawide ? 1440 : 1200;
+  const fitScale = Math.min(size.w / stageW, size.h / stageH);
 
   return (
-    <div className="ambient">
-      <div>
-        <div className="clock">{hhmm}</div>
-        <div className="today">{dateStr}</div>
-        {data?.brief?.text && <div className="brief">{data.brief.text}</div>}
-        <div className="metaline">
-          {data?.weather && <>{Math.round(data.weather.now_c)}° · regn {data.weather.rain_pct}% </>}
-          {data?.elpris?.now_dkk_kwh != null && <> · el {data.elpris.now_dkk_kwh.toFixed(2)} kr/kWh</>}
+    <div className="amb-viewport">
+      <div
+        className="amb-stage"
+        style={{ width: stageW, height: stageH, transform: `scale(${fitScale})` }}
+      >
+        <div className="amb-center" style={{ transform: ultrawide ? 'none' : 'scale(0.833)' }}>
+          <OrbitClock now={now} events={todayEvents} />
+          <AmbientColumn data={data} now={now} />
         </div>
-      </div>
-      <div className="side">
-        <h2>Næste</h2>
-        {(data?.events || []).slice(0, 6).map((e, i) => (
-          <div className="row" key={i}>
-            <span className="t">{fmtDay(e.start)} {e.all_day ? '' : fmtTime(e.start)}</span>
-            <span className="label">{e.title}</span>
-          </div>
-        ))}
-        <h2>Opgaver</h2>
-        {(data?.tasks || []).slice(0, 5).map((t) => (
-          <div className="row" key={t.id}>
-            <span className="t">{t.due ? fmtDay(t.due) : '—'}</span>
-            <span className="label">{t.title}</span>
-          </div>
-        ))}
       </div>
     </div>
   );
