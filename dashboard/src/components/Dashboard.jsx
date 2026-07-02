@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { fetchDashboard, fmtTime, fmtDay } from '../lib/api.js';
+import { fetchDashboard } from '../lib/api.js';
+import { fmtTime, fmtDay } from '../lib/format.js';
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
