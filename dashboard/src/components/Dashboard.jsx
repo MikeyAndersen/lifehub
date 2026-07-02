@@ -1,114 +1,71 @@
 import { useEffect, useState } from 'react';
 import { fetchDashboard } from '../lib/api.js';
-import { fmtTime, fmtDay } from '../lib/format.js';
+import { fmtClock } from '../lib/format.js';
+import Hero from './widgets/Hero.jsx';
+import Kalender from './widgets/Kalender.jsx';
+import Opgaver from './widgets/Opgaver.jsx';
+import Foedselsdage from './widgets/Foedselsdage.jsx';
+import Middag from './widgets/Middag.jsx';
+import Afgange from './widgets/Afgange.jsx';
+import Oekonomi from './widgets/Oekonomi.jsx';
 
+/* Interaktiv visning — telefon-først, flydende kort-flow.
+   Kort for manglende datablokke skjules helt; flex-wrap-flowet
+   sørger for at layoutet aldrig ser "hullet" ud. */
 export default function Dashboard() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [now, setNow] = useState(() => new Date());
+  const [okoHidden, setOkoHidden] = useState(false);
 
   useEffect(() => {
-    const load = () => fetchDashboard().then(setData).catch((e) => setError(e.message));
+    const load = () =>
+      fetchDashboard()
+        .then((d) => { setData(d); setError(null); })
+        .catch((e) => setError(e.message));
     load();
-    const id = setInterval(load, 120_000);
-    return () => clearInterval(id);
+    const dataId = setInterval(load, 120_000);
+    const clockId = setInterval(() => setNow(new Date()), 15_000);
+    return () => { clearInterval(dataId); clearInterval(clockId); };
   }, []);
 
-  if (error) return <div className="err">Kunne ikke hente data ({error}). Kører brain-servicen?</div>;
+  if (error && !data) {
+    return <div className="err">Kunne ikke hente data ({error}). Kører brain-servicen?</div>;
+  }
   if (!data) return <div className="muted" style={{ padding: 24 }}>Henter…</div>;
 
   return (
     <>
-      <Brief brief={data.brief} weather={data.weather} elpris={data.elpris} />
-      <div className="grid">
-        <Events events={data.events} />
-        <Tasks tasks={data.tasks} />
-        <Birthdays birthdays={data.birthdays} />
-        {data.finance && <Finance finance={data.finance} />}
+      <header className="topbar">
+        <div className="topbar-brand">
+          <h1>LifeHub</h1>
+          <span className="topbar-dot" />
+        </div>
+        <div className="topbar-right">
+          <span className="topbar-clock mono">{fmtClock(now)}</span>
+          <a className="linkish" href="/ambient">Ambient visning</a>
+        </div>
+      </header>
+
+      <Hero brief={data.brief} weather={data.weather} elpris={data.elpris} now={now} />
+
+      <div className="cards">
+        <Kalender events={data.events} />
+        <Opgaver tasks={data.tasks} />
+        <Foedselsdage birthdays={data.birthdays} />
+        <Middag madplan={data.madplan} />
+        <Afgange transit={data.transit} now={now} />
+        {data.finance && !okoHidden && (
+          <Oekonomi finance={data.finance} onHide={() => setOkoHidden(true)} />
+        )}
       </div>
+
+      <footer className="footer">
+        <span className="footer-text">LifeHub · selvhostet</span>
+        {data.finance && okoHidden && (
+          <button className="linkish" onClick={() => setOkoHidden(false)}>Vis økonomi</button>
+        )}
+      </footer>
     </>
-  );
-}
-
-function Brief({ brief, weather, elpris }) {
-  const today = new Date().toLocaleDateString('da-DK', {
-    weekday: 'long', day: 'numeric', month: 'long',
-  });
-  return (
-    <div className="hero">
-      <div className="date">
-        {today}
-        {weather && <> · {Math.round(weather.now_c)}° ({Math.round(weather.today_min)}–{Math.round(weather.today_max)}°, regn {weather.rain_pct}%)</>}
-        {elpris?.now_dkk_kwh != null && <> · el {elpris.now_dkk_kwh.toFixed(2)} kr/kWh</>}
-      </div>
-      {brief?.text || <span className="muted">Dagens brief kommer kl. 06.30 — eller udløs den manuelt fra Telegram.</span>}
-    </div>
-  );
-}
-
-function Events({ events }) {
-  return (
-    <section className="card">
-      <h2>Kalender · 7 dage</h2>
-      {events.length === 0 && <p className="muted">Ingen aftaler — nyd friheden.</p>}
-      {events.slice(0, 10).map((e, i) => (
-        <div className="row" key={i}>
-          <span className="t">{fmtDay(e.start)} {e.all_day ? '' : fmtTime(e.start)}</span>
-          <span className="label">
-            {e.title}
-            {e.location && <div className="sub">{e.location}</div>}
-          </span>
-        </div>
-      ))}
-    </section>
-  );
-}
-
-function Tasks({ tasks }) {
-  return (
-    <section className="card">
-      <h2>Opgaver</h2>
-      {tasks.length === 0 && <p className="muted">Alt er gjort. Imponerende.</p>}
-      {tasks.slice(0, 10).map((t) => (
-        <div className="row" key={t.id}>
-          <span className="t">{t.due ? fmtDay(t.due) : '—'}</span>
-          <span className="label">{t.title}</span>
-        </div>
-      ))}
-    </section>
-  );
-}
-
-function Birthdays({ birthdays }) {
-  return (
-    <section className="card">
-      <h2>Fødselsdage · 30 dage</h2>
-      {birthdays.length === 0 && <p className="muted">Ingen fødselsdage lige nu.</p>}
-      {birthdays.map((b, i) => (
-        <div className="row" key={i}>
-          <span className="t">{fmtDay(b.date)}</span>
-          <span className="label">{b.title}</span>
-        </div>
-      ))}
-    </section>
-  );
-}
-
-function Finance({ finance }) {
-  return (
-    <section className="card">
-      <h2>Økonomi <span className="pill">privat</span></h2>
-      {finance.status === 'not_configured' && (
-        <p className="muted">Banktilslutning ikke sat op endnu (GoCardless) — viser noterede udgifter.</p>
-      )}
-      {finance.recent_expenses?.map((e, i) => (
-        <div className="row" key={i}>
-          <span className="t">{e.amount_dkk.toFixed(0)} kr</span>
-          <span className="label">
-            {e.title}
-            <div className="sub">{e.noted_at?.slice(0, 10)}</div>
-          </span>
-        </div>
-      ))}
-    </section>
   );
 }
