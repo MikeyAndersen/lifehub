@@ -16,8 +16,13 @@ function at(off, hh, mm = 0) {
 }
 const day = (off) => at(off, 0).slice(0, 10);
 
+/** Lokal ISO-tid `min` minutter fra nu (afgange). */
+function inMin(min) {
+  const d = new Date(Date.now() + min * 60000);
+  return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}T${p2(d.getHours())}:${p2(d.getMinutes())}:00`;
+}
+
 export function mockDocument(ambient = false) {
-  const nowH = new Date().getHours();
   const doc = {
     generated_at: new Date().toISOString(),
     brief: {
@@ -64,7 +69,7 @@ export function mockDocument(ambient = false) {
     transit: {
       station: 'Lyngby st.',
       direction: 'København H',
-      departures: [at(0, nowH, 44), at(0, nowH + 1, 4), at(0, nowH + 1, 24)],
+      departures: [inMin(7), inMin(27), inMin(47)],
       status: 'ok',
     },
   };

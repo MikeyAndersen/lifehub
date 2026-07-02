@@ -37,13 +37,16 @@ export const fmtDayGroupLabel = (iso) => {
   return cap(base);
 };
 
+const WDS = ['søn', 'man', 'tir', 'ons', 'tor', 'fre', 'lør'];
+
 /** Opgave-deadline: "i går" / "i dag" / "i morgen" / "ons 8." */
 export const fmtDue = (iso) => {
   const off = dayOffset(iso);
   if (off === -1) return 'i går';
   if (off === 0) return 'i dag';
   if (off === 1) return 'i morgen';
-  return new Date(iso).toLocaleDateString('da-DK', { weekday: 'short', day: 'numeric' }) + '.';
+  const d = new Date(iso);
+  return `${WDS[d.getDay()]} ${d.getDate()}.`;
 };
 
 /** Fødselsdags-dato: "søn 5. jul." */
