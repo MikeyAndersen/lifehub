@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { fetchDashboard } from '../lib/api.js';
 import OrbitClock from './ambient/OrbitClock.jsx';
 import AmbientColumn from './ambient/AmbientColumn.jsx';
+import Wings from './ambient/Wings.jsx';
 
 /* Ambient visning — read-only delt flade for Wallpaper Engine / køkkentablet.
    Viser ALDRIG økonomi; /api/ambient sender det aldrig, og mock'en heller ikke.
@@ -56,6 +57,7 @@ export default function Ambient() {
         className="amb-stage"
         style={{ width: stageW, height: stageH, transform: `scale(${fitScale})` }}
       >
+        {ultrawide && <Wings />}
         <div className="amb-center" style={{ transform: ultrawide ? 'none' : 'scale(0.833)' }}>
           <OrbitClock now={now} events={todayEvents} />
           <AmbientColumn data={data} now={now} />
