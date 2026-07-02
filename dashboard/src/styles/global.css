@@ -1,145 +1,423 @@
-/* LifeHub tokens — afgangstavle: deep night blue, amber signals, tabular numerals */
-:root {
-  --bg: #0A1120;
-  --surface: #101A2E;
-  --surface-2: #16223B;
-  --line: #1D2C4A;
-  --text: #EDEFF7;
-  --muted: #7E8AA6;
-  --amber: #F0A22E;        /* the departure-board signal colour */
-  --ok: #3DD68C;
-  --bad: #F26D6D;
-  --radius: 10px;
-  --mono: ui-monospace, "Cascadia Mono", "JetBrains Mono", "Roboto Mono", monospace;
-  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+/* ============================================
+   LifeHub — design tokens (fra design-handoff)
+   Dark theme only. Én accentfarve som "signal".
+   ============================================ */
+
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/fonts/space-grotesk-var.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-300.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-500.woff2') format('woff2');
 }
 
+:root {
+  /* --- Farver: flader --- */
+  --lh-bg:            #0A1120;  /* app-baggrund (interaktiv) */
+  --lh-bg-space:      #060B16;  /* ambient / dyb rum-baggrund */
+  --lh-surface:       #0F1728;  /* kort */
+  --lh-surface-raised:#101A2E;  /* hero-kort (top af gradient) */
+  --lh-line:          rgba(148, 163, 190, 0.13);  /* kort-kanter */
+  --lh-line-soft:     rgba(148, 163, 190, 0.08);  /* rækkedelere */
+
+  /* --- Farver: tekst --- */
+  --lh-text:          #E9EEF7;  /* primær */
+  --lh-text-body:     #DCE4F2;  /* brødtekst */
+  --lh-text-2:        #93A0B8;  /* sekundær */
+  --lh-text-3:        #5B6A85;  /* dæmpet / meta */
+  --lh-text-4:        #3E4B63;  /* svagest (fodnoter, urskive-markører) */
+
+  /* --- Signal (én accent) --- */
+  --lh-signal:        #F0A22E;  /* afgangstavle-rav: tider, overskredet, "nu" */
+  --lh-signal-glow:   rgba(240, 162, 46, 0.5);
+  --lh-signal-dim:    rgba(240, 162, 46, 0.22); /* orbit-ringe, selektion */
+
+  /* --- Scene (kun ambient-vinger) --- */
+  --lh-planet-dust:   #C08A4A;
+  --lh-planet-slate:  #6E7F9C;
+  --lh-planet-deep:   #4E5F7E;
+  --lh-planet-faint:  #55627A;
+  --lh-star:          #AFC0DC;
+
+  /* --- Typografi --- */
+  --lh-font-ui:       'Space Grotesk', sans-serif;
+  --lh-font-mono:     'IBM Plex Mono', monospace;  /* alle tal og tider, tabular-nums */
+
+  /* Typeskala — interaktiv */
+  --lh-fs-meta:       11.5px;
+  --lh-fs-label:      13px;
+  --lh-fs-body-s:     13.5px;
+  --lh-fs-body:       14.5px;
+  --lh-fs-brief:      18px;
+  --lh-fs-title:      19px;
+
+  /* Typeskala — ambient (læsbar på 3 m) */
+  --lh-fs-amb-meta:   22px;
+  --lh-fs-amb-task:   25px;
+  --lh-fs-amb-row:    29px;
+  --lh-fs-amb-brief:  36px;
+  --lh-fs-amb-clock:  132px;
+
+  /* --- Spacing --- */
+  --lh-sp-1:  4px;
+  --lh-sp-2:  8px;
+  --lh-sp-3:  12px;
+  --lh-sp-4:  16px;
+  --lh-sp-5:  20px;
+  --lh-sp-6:  24px;
+  --lh-sp-7:  32px;
+  --lh-sp-8:  48px;
+  --lh-sp-9:  64px;
+
+  /* --- Form --- */
+  --lh-radius-card:   12px;
+  --lh-radius-check:  6px;
+}
+
+/* ── Base ─────────────────────────────────────────────────────── */
 * { box-sizing: border-box; }
 html { color-scheme: dark; }
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--sans);
-  font-size: 15px;
-  line-height: 1.45;
+  background: var(--lh-bg);
+  color: var(--lh-text);
+  font-family: var(--lh-font-ui);
   -webkit-font-smoothing: antialiased;
 }
+::selection { background: rgba(240, 162, 46, 0.28); }
 
-.wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.mono {
+  font-family: var(--lh-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.muted { color: var(--lh-text-3); font-size: var(--lh-fs-body-s); }
+.err { color: var(--lh-text-2); padding: 24px; text-align: center; }
 
-.grid {
-  display: grid;
-  gap: 14px;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+/* ── Interaktiv visning ───────────────────────────────────────── */
+.wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: clamp(16px, 3vw, 36px) clamp(14px, 3vw, 32px) 56px;
 }
 
-.card {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-}
-.card h2 {
-  margin: 0 0 10px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-/* Departure-board rows: time in amber tabular figures, then the label */
-.row {
+.topbar {
   display: flex;
   align-items: baseline;
-  gap: 12px;
-  padding: 7px 0;
-  border-bottom: 1px solid var(--line);
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: clamp(18px, 3vw, 30px);
 }
-.row:last-child { border-bottom: none; }
-.row .t {
-  font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
-  color: var(--amber);
-  min-width: 82px;
-  font-size: 14px;
+.topbar-brand { display: flex; align-items: baseline; gap: 12px; }
+.topbar-brand h1 {
+  margin: 0;
+  font-size: var(--lh-fs-title);
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
-.row .label { flex: 1; }
-.row .sub { color: var(--muted); font-size: 12.5px; }
+.topbar-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--lh-signal);
+  align-self: center;
+}
+.topbar-right { display: flex; align-items: baseline; gap: 18px; }
+.topbar-clock { font-size: 14px; color: var(--lh-text-2); }
+.linkish {
+  font-size: 13px;
+  color: var(--lh-text-3);
+  text-decoration: none;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0 0 1px;
+  font-family: inherit;
+  border-bottom: 1px solid rgba(148, 163, 190, 0.25);
+}
+.linkish:hover { color: var(--lh-text-2); }
 
-/* Hero: the morning brief as the announcement board */
+/* Hero — dagens brief */
 .hero {
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--amber);
-  border-radius: var(--radius);
-  padding: 16px 18px;
   margin-bottom: 14px;
+  background: linear-gradient(180deg, var(--lh-surface-raised) 0%, #0E1626 100%);
+  border: 1px solid rgba(148, 163, 190, 0.15);
+  border-radius: var(--lh-radius-card);
+  padding: clamp(20px, 3vw, 30px) clamp(20px, 3.4vw, 34px);
+}
+.hero-meta {
+  font-family: var(--lh-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--lh-fs-label);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 0;
+  margin-bottom: 16px;
+}
+.hero-meta .sig { color: var(--lh-signal); }
+.hero-meta .sep { color: var(--lh-text-3); }
+.hero-meta .val { color: var(--lh-text-2); }
+.hero-text {
+  font-size: clamp(16px, 1.6vw, 18px);
+  line-height: 1.68;
+  color: var(--lh-text-body);
+  max-width: 70ch;
+  text-wrap: pretty;
   white-space: pre-line;
 }
-.hero .date {
-  font-family: var(--mono);
-  color: var(--muted);
+
+/* Kort-flow: kort flyder som tekst og fylder rækken ud */
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-start;
+}
+.card {
+  flex: 1 1 330px;
+  min-width: min(100%, 330px);
+  background: var(--lh-surface);
+  border: 1px solid var(--lh-line);
+  border-radius: var(--lh-radius-card);
+  padding: 20px 22px;
+}
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 14px;
+}
+.card-label {
+  font-size: var(--lh-fs-label);
+  font-weight: 500;
+  color: var(--lh-text-2);
+  letter-spacing: 0.02em;
+}
+.card-label-group { display: flex; align-items: baseline; gap: 10px; }
+.card-meta {
+  font-family: var(--lh-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--lh-fs-meta);
+  color: var(--lh-text-3);
+}
+
+/* Kalender */
+.day-groups { display: flex; flex-direction: column; gap: 16px; }
+.day-label {
+  font-family: var(--lh-font-mono);
+  font-size: var(--lh-fs-meta);
+  color: var(--lh-text-3);
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+.ev-row {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 12px;
+  padding: 7px 0;
+  border-top: 1px solid var(--lh-line-soft);
+}
+.ev-row:hover { background: rgba(148, 163, 190, 0.05); }
+.ev-time {
+  font-family: var(--lh-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  color: var(--lh-signal);
+}
+.ev-title { font-size: var(--lh-fs-body); color: var(--lh-text); min-width: 0; }
+.ev-loc { font-size: 12.5px; color: var(--lh-text-3); margin-top: 1px; }
+
+/* Opgaver */
+.task-row {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 0;
+  border-top: 1px solid var(--lh-line-soft);
+  cursor: pointer;
+}
+.task-row:hover { background: rgba(148, 163, 190, 0.05); }
+.task-box {
+  width: 20px; height: 20px;
+  border-radius: var(--lh-radius-check);
+  border: 1.5px solid rgba(148, 163, 190, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 12px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  color: var(--lh-text-2);
+}
+.task-row.overdue .task-box { border-color: rgba(240, 162, 46, 0.6); }
+.task-row.done .task-box {
+  border-color: rgba(148, 163, 190, 0.35);
+  background: rgba(148, 163, 190, 0.12);
+}
+.task-title { font-size: var(--lh-fs-body); color: var(--lh-text); }
+.task-row.done .task-title { color: var(--lh-text-3); text-decoration: line-through; }
+.task-due {
+  font-family: var(--lh-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--lh-text-3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.task-row.overdue .task-due { color: var(--lh-signal); }
+.task-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--lh-signal);
+  display: inline-block;
+}
+
+/* Fødselsdage */
+.bd-row {
+  display: grid;
+  grid-template-columns: 100px 1fr auto;
+  gap: 12px;
+  align-items: baseline;
+  padding: 9px 0;
+  border-top: 1px solid var(--lh-line-soft);
+}
+.bd-date {
+  font-family: var(--lh-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--lh-text-2);
+  white-space: nowrap;
+}
+.bd-name { font-size: var(--lh-fs-body); color: var(--lh-text); }
+.bd-age {
+  font-family: var(--lh-font-mono);
+  font-size: 12px;
+  color: var(--lh-text-3);
+}
+
+/* Middag i aften */
+.dinner-dish { font-size: var(--lh-fs-title); font-weight: 500; color: var(--lh-text); margin-bottom: 6px; }
+.dinner-cook { font-size: var(--lh-fs-body-s); color: var(--lh-text-2); line-height: 1.5; }
+.dinner-note {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--lh-line-soft);
+  font-size: var(--lh-fs-label);
+  color: var(--lh-text-3);
+}
+
+/* Afgange */
+.dep-row {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 12px;
+  align-items: baseline;
+  padding: 8px 0;
+  border-top: 1px solid var(--lh-line-soft);
+}
+.dep-time {
+  font-family: var(--lh-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 15px;
+  color: var(--lh-signal);
+}
+.dep-rel {
+  font-family: var(--lh-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  color: var(--lh-text-2);
+}
+
+/* Økonomi */
+.chip {
+  font-family: var(--lh-font-mono);
+  font-size: 10.5px;
+  color: var(--lh-text-3);
+  border: 1px solid rgba(148, 163, 190, 0.2);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.acct-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 8px 0;
+  border-top: 1px solid var(--lh-line-soft);
+}
+.acct-name { font-size: 14px; color: var(--lh-text); }
+.amount {
+  font-family: var(--lh-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--lh-fs-body);
+  color: var(--lh-text);
+}
+.exp-section { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--lh-line-soft); }
+.exp-label {
+  font-family: var(--lh-font-mono);
+  font-size: 11px;
+  color: var(--lh-text-3);
+  letter-spacing: 0.06em;
   margin-bottom: 6px;
 }
-
-.pill {
-  display: inline-block;
-  font-family: var(--mono);
-  font-size: 12px;
-  padding: 1px 8px;
-  border-radius: 99px;
-  border: 1px solid var(--line);
-  color: var(--muted);
+.exp-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 5px 0;
 }
-.pill.ok  { color: var(--ok);  border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
-.pill.bad { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 40%, transparent); }
-
-.muted { color: var(--muted); }
-.err { color: var(--bad); padding: 24px; text-align: center; }
-
-/* ── Ambient (wallpaper / kitchen tablet) ─────────────────────── */
-.ambient {
-  min-height: 100vh;
-  padding: 5vh 6vw;
-  display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 4vw;
-  align-content: start;
-}
-.ambient .clock {
-  font-family: var(--mono);
+.exp-name { font-size: var(--lh-fs-body-s); color: var(--lh-text-2); }
+.exp-amount {
+  font-family: var(--lh-font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: clamp(64px, 9vw, 140px);
-  font-weight: 300;
-  letter-spacing: 0.02em;
-  line-height: 1;
+  font-size: 13px;
+  color: var(--lh-text-2);
 }
-.ambient .today { color: var(--muted); font-size: clamp(16px, 1.6vw, 24px); margin-top: 8px; }
-.ambient .brief { margin-top: 4vh; font-size: clamp(15px, 1.4vw, 22px); white-space: pre-line; max-width: 34em; }
-.ambient .row .t { font-size: clamp(14px, 1.3vw, 22px); min-width: 6ch; }
-.ambient .row .label { font-size: clamp(14px, 1.3vw, 22px); }
-.ambient .side h2 {
-  font-size: clamp(10px, 0.9vw, 13px);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin: 3vh 0 1vh;
+.ontrack {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--lh-line-soft);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--lh-fs-label);
+  color: var(--lh-text-2);
 }
-.ambient .metaline {
-  font-family: var(--mono);
-  color: var(--muted);
-  font-size: clamp(12px, 1vw, 16px);
-  margin-top: 3vh;
+.ontrack-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--lh-text-2); }
+
+/* Footer */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--lh-line-soft);
 }
-@media (max-width: 800px) {
-  .ambient { grid-template-columns: 1fr; }
+.footer-text {
+  font-family: var(--lh-font-mono);
+  font-size: var(--lh-fs-meta);
+  color: var(--lh-text-4);
 }
-@media (prefers-reduced-motion: no-preference) {
-  .card, .hero { animation: rise 0.35s ease both; }
-  @keyframes rise { from { opacity: 0; transform: translateY(4px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
 }
