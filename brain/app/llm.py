@@ -66,10 +66,12 @@ Eksempler (NU = tirsdag 2026-06-30T18:00):
 
 async def _chat(messages: list[dict], schema: dict | None = None) -> str:
     body: dict = {"model": config.OLLAMA_MODEL, "messages": messages, "stream": False,
-                  "options": {"temperature": 0.1}}
+                  "keep_alive": "10m", "options": {"temperature": 0.1}}
     if schema:
         body["format"] = schema
-    async with httpx.AsyncClient(timeout=120) as client:
+    # 300s: the local 7B model on CPU can be slow to respond, and keep_alive
+    # holds it in memory between calls so only the first request pays warm-up.
+    async with httpx.AsyncClient(timeout=300) as client:
         r = await client.post(f"{config.OLLAMA_URL}/api/chat", json=body)
         r.raise_for_status()
         return r.json()["message"]["content"]
