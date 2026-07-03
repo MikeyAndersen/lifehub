@@ -1,6 +1,12 @@
 # Env & secrets
 .env
 secrets/
+# Google OAuth client/token files kept next to the helper scripts
+brain/scripts/client_secret.json
+brain/scripts/token.json
+
+# Runtime data (sqlite db, generated files) — never overwrite on server pull
+data/
 
 # Node / Astro
 node_modules/
