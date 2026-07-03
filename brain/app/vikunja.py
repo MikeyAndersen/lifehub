@@ -26,6 +26,48 @@ async def add_shopping_items(items: list[str]) -> list[dict]:
             for item in items]
 
 
+async def get_task(ref: dict) -> dict | None:
+    """Look up a task by created_ref. None if it was deleted."""
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.get(f"{config.VIKUNJA_URL}/api/v1/tasks/{ref['task_id']}",
+                             headers=_HEADERS)
+    if r.status_code == 404:
+        return None
+    r.raise_for_status()
+    return r.json()
+
+
+async def update_task(ref: dict, *, title: str | None = None, due: str | None = None,
+                      description: str | None = None) -> dict | None:
+    """Partial update by created_ref. Vikunja's task update (POST /tasks/{id})
+    replaces the task, so fetch-merge-post to keep untouched fields intact.
+    due="" clears the due date; due=None leaves it alone."""
+    task = await get_task(ref)
+    if task is None:
+        return None
+    if title is not None:
+        task["title"] = title
+    if description is not None:
+        task["description"] = description
+    if due == "":
+        task["due_date"] = "0001-01-01T00:00:00Z"
+    elif due is not None:
+        task["due_date"] = due if "T" in due else f"{due}T17:00:00+02:00"
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.post(f"{config.VIKUNJA_URL}/api/v1/tasks/{ref['task_id']}",
+                              json=task, headers=_HEADERS)
+        r.raise_for_status()
+        return r.json()
+
+
+async def delete_task(ref: dict) -> None:
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.delete(f"{config.VIKUNJA_URL}/api/v1/tasks/{ref['task_id']}",
+                                headers=_HEADERS)
+        if r.status_code != 404:  # already gone is fine — deletion is idempotent
+            r.raise_for_status()
+
+
 async def open_tasks(limit: int = 40) -> list[dict]:
     # Current Vikunja lists tasks across all projects via GET /api/v1/tasks.
     # The old /tasks/all endpoint 400s ("Invalid model provided") once a

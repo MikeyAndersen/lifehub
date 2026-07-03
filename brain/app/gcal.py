@@ -81,3 +81,35 @@ def create_event(parsed: dict) -> dict:
     return {"link": created.get("htmlLink", ""),
             "event_id": created["id"],
             "calendar_id": config.DEFAULT_CALENDAR_ID}
+
+
+def get_event(ref: dict) -> dict | None:
+    """Look up an event by created_ref. None if it no longer exists."""
+    svc = _service()
+    try:
+        e = svc.events().get(calendarId=ref["calendar_id"],
+                             eventId=ref["event_id"]).execute()
+    except Exception:
+        return None
+    return None if e.get("status") == "cancelled" else e
+
+
+def update_event(ref: dict, parsed: dict) -> None:
+    body = _event_body(parsed)
+    # patch() merges nested objects, so explicitly null the unused time field
+    # or an all-day <-> timed switch leaves both date and dateTime set.
+    for key in ("start", "end"):
+        body[key].setdefault("date", None)
+        body[key].setdefault("dateTime", None)
+    svc = _service()
+    svc.events().patch(calendarId=ref["calendar_id"], eventId=ref["event_id"],
+                       body=body).execute()
+
+
+def delete_event(ref: dict) -> None:
+    svc = _service()
+    try:
+        svc.events().delete(calendarId=ref["calendar_id"],
+                            eventId=ref["event_id"]).execute()
+    except Exception:
+        pass  # already gone — deletion is idempotent
