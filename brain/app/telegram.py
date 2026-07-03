@@ -1,8 +1,12 @@
 """Telegram bot logic, hand-rolled on the Bot API over httpx.
 
 Flow: update arrives on the webhook -> text or transcribed voice -> LLM parse ->
-pending confirmation with inline buttons -> ✅ executes against Google Calendar /
-Vikunja / expense log. Finance intents are only accepted from the admin chat id.
+execute immediately against Google Calendar / Vikunja / expense log and reply
+with the result. Finance intents are only accepted from the admin chat id.
+
+The older confirmation flow (inline ✅/🗑 buttons via store.add_pending +
+_confirm_keyboard, resolved in the callback_query branch of handle_update) is
+kept intact: old messages may still fire callbacks, and it can be reinstated.
 """
 from __future__ import annotations
 
@@ -137,8 +141,12 @@ async def handle_update(update: dict) -> None:
     if parsed["intent"] == "expense" and chat_id != config.TELEGRAM_ADMIN_CHAT_ID:
         parsed["intent"] = "note"
 
-    pid = store.add_pending(parsed)
-    await send(chat_id, _describe(parsed), reply_markup=_confirm_keyboard(pid))
+    # Execute immediately instead of asking for confirmation. The confirm flow
+    # (store.add_pending + _confirm_keyboard, handled by the callback_query
+    # branch above) is kept intact so old inline buttons still work and the
+    # flow can be reinstated later.
+    result = await _execute(parsed)
+    await send(chat_id, f"{_describe(parsed)}\n\n{result}")
 
 
 async def broadcast_brief(text: str) -> None:
