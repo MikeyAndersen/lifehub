@@ -21,9 +21,9 @@ async def create_task(title: str, due: str | None = None,
         return r.json()
 
 
-async def add_shopping_items(items: list[str]) -> None:
-    for item in items:
-        await create_task(item, project_id=config.VIKUNJA_SHOPPING_PROJECT_ID)
+async def add_shopping_items(items: list[str]) -> list[dict]:
+    return [await create_task(item, project_id=config.VIKUNJA_SHOPPING_PROJECT_ID)
+            for item in items]
 
 
 async def open_tasks(limit: int = 40) -> list[dict]:

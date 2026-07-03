@@ -58,28 +58,47 @@ def _describe(parsed: dict) -> str:
     return "\n".join(lines)
 
 
-async def _execute(parsed: dict) -> str:
+def _task_ref(task: dict, project_id: int) -> dict:
+    return {"kind": "task", "project_id": task.get("project_id") or project_id,
+            "task_id": task["id"]}
+
+
+async def _execute(parsed: dict) -> tuple[str, list[dict]]:
+    """Create the action for a parsed intent. Returns (user message,
+    created_ref list) — the refs let the quality pass update/delete later."""
     intent = parsed["intent"]
     if intent == "event":
-        link = gcal.create_event(parsed)
-        return f"✅ Lagt i kalenderen.\n{link}"
+        created = gcal.create_event(parsed)
+        ref = {"kind": "event", "calendar_id": created["calendar_id"],
+               "event_id": created["event_id"]}
+        return f"✅ Lagt i kalenderen.\n{created['link']}", [ref]
     if intent == "task":
-        await vikunja.create_task(parsed["title"], due=parsed.get("due"),
-                                  description=parsed.get("notes") or "")
-        return "✅ Opgave oprettet."
+        task = await vikunja.create_task(parsed["title"], due=parsed.get("due"),
+                                         description=parsed.get("notes") or "")
+        return "✅ Opgave oprettet.", [_task_ref(task, config.VIKUNJA_DEFAULT_PROJECT_ID)]
     if intent == "shopping":
-        await vikunja.add_shopping_items(parsed.get("items") or [parsed["title"]])
-        return "✅ Sat på indkøbslisten."
+        tasks = await vikunja.add_shopping_items(parsed.get("items") or [parsed["title"]])
+        refs = [_task_ref(t, config.VIKUNJA_SHOPPING_PROJECT_ID) for t in tasks]
+        return "✅ Sat på indkøbslisten.", refs
     if intent == "expense":
-        store.log_expense(parsed["title"], parsed.get("amount_dkk") or 0,
-                          datetime.now(ZoneInfo(config.TZ)).isoformat(),
-                          parsed.get("source_text", ""))
-        return "✅ Udgift noteret."
+        row_id = store.log_expense(parsed["title"], parsed.get("amount_dkk") or 0,
+                                   datetime.now(ZoneInfo(config.TZ)).isoformat(),
+                                   parsed.get("source_text", ""))
+        return "✅ Udgift noteret.", [{"kind": "expense", "row_id": row_id}]
     if intent == "note":
-        await vikunja.create_task(f"📝 {parsed['title']}",
-                                  description=parsed.get("source_text", ""))
-        return "✅ Note gemt som opgave."
-    return "🤷 Det fangede jeg ikke — prøv at omformulere."
+        task = await vikunja.create_task(f"📝 {parsed['title']}",
+                                         description=parsed.get("source_text", ""))
+        return "✅ Note gemt som opgave.", [_task_ref(task, config.VIKUNJA_DEFAULT_PROJECT_ID)]
+    return "🤷 Det fangede jeg ikke — prøv at omformulere.", []
+
+
+def _maybe_enqueue(parsed: dict, chat_id: int, created_ref: list[dict]) -> None:
+    """Queue the Pass-1 result for the strong-model quality pass. No-op when
+    STRONG_OLLAMA_URL is unset or nothing was created (question/unknown)."""
+    if not config.STRONG_OLLAMA_URL or not created_ref:
+        return
+    store.enqueue_review(parsed.get("source_text", ""), chat_id, parsed,
+                         datetime.now(ZoneInfo(config.TZ)).isoformat(), created_ref)
 
 
 async def _download_voice(file_id: str) -> str:
@@ -106,7 +125,12 @@ async def handle_update(update: dict) -> None:
         if not parsed:
             await send(chat_id, "Den er udløbet — send beskeden igen.")
             return
-        await send(chat_id, await _execute(parsed) if action == "ok" else "Droppet 👍")
+        if action == "ok":
+            result, created_ref = await _execute(parsed)
+            _maybe_enqueue(parsed, chat_id, created_ref)
+            await send(chat_id, result)
+        else:
+            await send(chat_id, "Droppet 👍")
         return
 
     # ── Messages ─────────────────────────────────────────────────
@@ -145,7 +169,8 @@ async def handle_update(update: dict) -> None:
     # (store.add_pending + _confirm_keyboard, handled by the callback_query
     # branch above) is kept intact so old inline buttons still work and the
     # flow can be reinstated later.
-    result = await _execute(parsed)
+    result, created_ref = await _execute(parsed)
+    _maybe_enqueue(parsed, chat_id, created_ref)
     await send(chat_id, f"{_describe(parsed)}\n\n{result}")
 
 

@@ -60,8 +60,7 @@ def list_birthdays(days: int = 30) -> list[dict]:
             for e in resp.get("items", [])]
 
 
-def create_event(parsed: dict) -> str:
-    svc = _service()
+def _event_body(parsed: dict) -> dict:
     body: dict = {"summary": parsed["title"]}
     if parsed.get("notes"):
         body["description"] = parsed["notes"]
@@ -72,5 +71,13 @@ def create_event(parsed: dict) -> str:
     else:
         body["start"] = {"dateTime": parsed["start"], "timeZone": config.TZ}
         body["end"] = {"dateTime": parsed.get("end") or parsed["start"], "timeZone": config.TZ}
-    created = svc.events().insert(calendarId=config.DEFAULT_CALENDAR_ID, body=body).execute()
-    return created.get("htmlLink", "")
+    return body
+
+
+def create_event(parsed: dict) -> dict:
+    svc = _service()
+    created = svc.events().insert(calendarId=config.DEFAULT_CALENDAR_ID,
+                                  body=_event_body(parsed)).execute()
+    return {"link": created.get("htmlLink", ""),
+            "event_id": created["id"],
+            "calendar_id": config.DEFAULT_CALENDAR_ID}
