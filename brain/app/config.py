@@ -14,6 +14,13 @@ OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "small")
 
+# Dual-pass quality review. Empty STRONG_OLLAMA_URL disables the feature
+# entirely: no queueing, no extra calls, behaviour exactly as before.
+STRONG_OLLAMA_URL = os.getenv("STRONG_OLLAMA_URL", "")
+STRONG_OLLAMA_MODEL = os.getenv("STRONG_OLLAMA_MODEL", "qwen2.5:32b-instruct")
+REVIEW_HARD_MAX_AGE_DAYS = int(os.getenv("REVIEW_HARD_MAX_AGE_DAYS", "7"))
+REVIEW_DRAIN_TOKEN = os.getenv("REVIEW_DRAIN_TOKEN", "")
+
 GOOGLE_TOKEN_PATH = os.getenv("GOOGLE_TOKEN_PATH", "/secrets/token.json")
 DEFAULT_CALENDAR_ID = os.getenv("DEFAULT_CALENDAR_ID", "primary")
 BIRTHDAYS_CALENDAR_ID = os.getenv(
