@@ -27,11 +27,16 @@ async def add_shopping_items(items: list[str]) -> None:
 
 
 async def open_tasks(limit: int = 40) -> list[dict]:
+    # Current Vikunja lists tasks across all projects via GET /api/v1/tasks.
+    # The old /tasks/all endpoint 400s ("Invalid model provided") once a
+    # filter is supplied. `filter=done = false` drops completed tasks
+    # server-side; an empty result comes back as JSON null, not [].
+    params = {"filter": "done = false", "sort_by": "due_date", "per_page": limit}
     async with httpx.AsyncClient(timeout=15) as client:
-        r = await client.get(f"{config.VIKUNJA_URL}/api/v1/tasks/all",
-                             params={"per_page": limit}, headers=_HEADERS)
+        r = await client.get(f"{config.VIKUNJA_URL}/api/v1/tasks",
+                             params=params, headers=_HEADERS)
         r.raise_for_status()
-    tasks = [t for t in r.json() if not t.get("done")]
+    tasks = [t for t in (r.json() or []) if not t.get("done")]
     tasks.sort(key=lambda t: t.get("due_date") or "9999")
     return [{"title": t["title"], "due": t.get("due_date"),
              "project_id": t.get("project_id"), "id": t["id"]} for t in tasks]
