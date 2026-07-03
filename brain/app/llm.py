@@ -64,17 +64,33 @@ Eksempler (NU = tirsdag 2026-06-30T18:00):
 """
 
 
-async def _chat(messages: list[dict], schema: dict | None = None) -> str:
-    body: dict = {"model": config.OLLAMA_MODEL, "messages": messages, "stream": False,
-                  "keep_alive": "10m", "options": {"temperature": 0.1}}
+async def _chat(messages: list[dict], schema: dict | None = None, *,
+                base_url: str | None = None, model: str | None = None) -> str:
+    # Default (no base_url/model) targets the local CPU model and keeps it
+    # warm between calls. A non-local base_url is the gaming PC's GPU: there
+    # keep_alive is "0" so the model leaves VRAM right after every call.
+    remote = base_url is not None and base_url != config.OLLAMA_URL
+    body: dict = {"model": model or config.OLLAMA_MODEL, "messages": messages,
+                  "stream": False, "keep_alive": "0" if remote else "10m",
+                  "options": {"temperature": 0.1}}
     if schema:
         body["format"] = schema
     # 300s: the local 7B model on CPU can be slow to respond, and keep_alive
     # holds it in memory between calls so only the first request pays warm-up.
     async with httpx.AsyncClient(timeout=300) as client:
-        r = await client.post(f"{config.OLLAMA_URL}/api/chat", json=body)
+        r = await client.post(f"{base_url or config.OLLAMA_URL}/api/chat", json=body)
         r.raise_for_status()
         return r.json()["message"]["content"]
+
+
+async def is_online(base_url: str) -> bool:
+    """Quick reachability probe for an Ollama instance."""
+    try:
+        async with httpx.AsyncClient(timeout=2.5) as client:
+            r = await client.get(f"{base_url}/api/tags")
+            return r.status_code == 200
+    except httpx.HTTPError:
+        return False
 
 
 def _validate_dt(value: str | None, now: datetime) -> str | None:
@@ -93,15 +109,25 @@ def _validate_dt(value: str | None, now: datetime) -> str | None:
     return dt.isoformat()
 
 
-async def parse_message(text: str) -> dict:
-    now = datetime.now(ZoneInfo(config.TZ))
+async def parse_message(text: str, *, base_url: str | None = None,
+                        model: str | None = None, now: datetime | None = None) -> dict:
+    # `now` anchors relative expressions ("på torsdag", "i morgen"). The
+    # quality pass re-parses old messages and MUST pass the message's
+    # original received_at here — anchoring to the current time would
+    # resolve relative dates to a different day and "correct" good events
+    # to wrong dates. The same anchor drives _validate_dt's sanity window,
+    # or late re-parses would reject dates Pass 1 rightly accepted.
+    if now is None:
+        now = datetime.now(ZoneInfo(config.TZ))
+    elif now.tzinfo is None:
+        now = now.replace(tzinfo=ZoneInfo(config.TZ))
     user = (
         f"NU er {now.strftime('%A')} {now.isoformat(timespec='minutes')} "
         f"(dansk tid). Besked: {text}"
     )
     raw = await _chat(
         [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user}],
-        schema=INTENT_SCHEMA,
+        schema=INTENT_SCHEMA, base_url=base_url, model=model,
     )
     try:
         parsed = json.loads(raw)
