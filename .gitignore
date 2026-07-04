@@ -7,6 +7,7 @@ brain/scripts/token.json
 
 # Runtime data (sqlite db, generated files) — never overwrite on server pull
 data/
+agent/agent.log
 
 # Node / Astro
 node_modules/
