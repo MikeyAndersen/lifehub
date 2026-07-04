@@ -53,6 +53,12 @@ AULA_AUTO_MAX_DAYS_AHEAD = int(os.getenv("AULA_AUTO_MAX_DAYS_AHEAD", "90"))
 AULA_PROPOSAL_TTL_HOURS = int(os.getenv("AULA_PROPOSAL_TTL_HOURS", "72"))
 AULA_URGENT_HOURS = int(os.getenv("AULA_URGENT_HOURS", "24"))
 
+# ── Generel post-triage (Del 4): hele INBOX minus støj ──────────────
+# Admin-only overalt (dashboard-gating som finance, Telegram kun til admin).
+# Ingen auto-handlinger — kun highlights og forslag med knapper.
+TRIAGE_ENABLED = os.getenv("TRIAGE_ENABLED", "false").lower() == "true"
+TRIAGE_LOOKBACK_DAYS = int(os.getenv("TRIAGE_LOOKBACK_DAYS", "3"))
+
 ADMIN_EMAILS = {e.lower() for e in _list("ADMIN_EMAILS")}
 TZ = os.getenv("TZ", "Europe/Copenhagen")
 LATITUDE = float(os.getenv("LATITUDE", "56.15"))

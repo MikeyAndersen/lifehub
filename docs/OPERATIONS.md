@@ -87,3 +87,34 @@ curl http://192.168.0.145:8300/api/aula/info?days=7
 `aula_messages.status`: `received` → `classified` (eller `failed`).
 `aula_items.status`: `pending` → `approved`/`rejected`/`edited`/`expired`
 (forslag), `auto_created` → evt. `undone` (auto), `briefed`/`notified` (info).
+
+## Generel post-triage (Del 4)
+
+Anden stream over samme postkasse: hele INBOX minus støj (Gmails
+Promotions/Social-kategorier og `List-Unsubscribe`-header filtreres
+deterministisk FØR LLM'en; mails med Aula-label ejes af Del 3-streamen).
+Deler tabeller (`stream='inbox'`), poll-tick, TTL og knap-flow med Aula.
+
+Forskelle fra Aula-pipelinen:
+
+- **Ingen auto-sti overhovedet** — vilkårlige afsendere er fuldt utroede.
+  Alt er highlights eller knap-forslag; godkendt forslag bliver en
+  Vikunja-opgave med fristen som due date.
+- **Admin-only overalt:** forslag/straks-beskeder går kun til
+  `TELEGRAM_ADMIN_CHAT_ID`, post-digesten kl. 06:30 er en separat
+  admin-besked (aldrig familie-briefen), og dashboard-blokken er gated som
+  finance (aldrig i `/ambient`).
+- **Egen history-cursor** (`gmail_history_id_inbox`) og eget lookback
+  (`TRIAGE_LOOKBACK_DAYS`, default 3 — bevidst kort: første resync af en
+  hel indbakke skal ikke koste hundredvis af LLM-kald).
+
+Aktivering: `TRIAGE_ENABLED=true` i `.env` (kræver samme gmail.readonly-token
+som Del 3; virker også uden Aula-label). Manuel test:
+
+```bash
+curl -X POST http://192.168.0.145:8300/api/post/poll
+```
+
+Støj (`status='skipped'`) registreres men klassificeres aldrig; `low` uden
+handling droppes efter klassifikation. Kun `high`/frist-nære items giver
+straks-besked; `normal` info samles i digesten (vises én gang).

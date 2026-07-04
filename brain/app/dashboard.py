@@ -10,7 +10,7 @@ import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from . import aula, config, gcal, llm, store, telegram, vikunja
+from . import aula, config, gcal, llm, store, telegram, triage, vikunja
 from .feeds import elpris, finance, stubs, weather
 
 log = logging.getLogger("lifehub")
@@ -80,6 +80,19 @@ async def morning_brief() -> None:
     except Exception:
         log.exception("morning brief failed")
 
+    # Post-digest (Del 4): egen admin-besked, aldrig familie-briefen —
+    # indbakken er privat. Egen try, så en brief-fejl ikke sluger den.
+    if config.TRIAGE_ENABLED:
+        try:
+            post_lines, post_expired = triage.collect_brief_digest()
+            if post_lines or post_expired:
+                msg = "📮 Post: " + (" · ".join(post_lines) or "ingen nye")
+                if post_expired:
+                    msg += f"\n⏳ {post_expired} post-forslag udløb ubesvaret."
+                await telegram.send_plain(config.TELEGRAM_ADMIN_CHAT_ID, msg)
+        except Exception:
+            log.exception("post digest failed")
+
 
 # ── Aggregate document ──────────────────────────────────────────────
 def build(viewer_email: str | None, ambient: bool = False) -> dict:
@@ -101,4 +114,11 @@ def build(viewer_email: str | None, ambient: bool = False) -> dict:
     is_admin = bool(viewer_email) and viewer_email.lower() in config.ADMIN_EMAILS
     if is_admin and not ambient:
         doc["finance"] = store.get_cache("finance") or {"status": "not_configured"}
+        # Post-triage er admin-gated som finance: andre enheder (og /ambient)
+        # modtager aldrig blokken.
+        if config.TRIAGE_ENABLED:
+            try:
+                doc["post"] = triage.feed(days=7)
+            except Exception:
+                log.exception("post feed failed")
     return doc

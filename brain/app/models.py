@@ -55,3 +55,45 @@ def fail_safe_item(subject: str) -> AulaItem:
     return AulaItem(intent="info", title=(subject or "(uden emne)")[:120],
                     summary="Kunne ikke klassificeres automatisk — se mailen i Gmail.",
                     confidence=0.0, ambiguity_flags=["unclear"])
+
+
+# ── Generel post-triage (Del 4) ─────────────────────────────────────
+# One verdict per mail. Arbitrary senders are fully untrusted, so there is
+# no auto path at all — the schema only feeds highlights and button
+# proposals. Same strictness as AulaItem.
+
+SenderKind = Literal["kommune", "bank", "forsikring", "sundhed", "skole",
+                     "forening", "butik", "nyhedsbrev", "andet"]
+
+
+class TriageItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    importance: Literal["high", "normal", "low"]
+    summary: str = Field(max_length=200)
+    sender_kind: SenderKind = "andet"
+    action_required: bool = False
+    action_title: str | None = Field(default=None, max_length=120)
+    deadline: dt.datetime | None = None
+    confidence: float = Field(ge=0.0, le=1.0)
+
+    @field_validator("summary", "action_title", mode="before")
+    @classmethod
+    def _clean(cls, v, info):
+        if isinstance(v, str):
+            v = re.sub(r"\s+", " ", _CTRL.sub(" ", v)).strip()
+            v = v[:120] if info.field_name == "action_title" else v[:200]
+            return v or None if info.field_name == "action_title" else v
+        return v
+
+    @field_validator("deadline", mode="before")
+    @classmethod
+    def _empty_deadline(cls, v):
+        return None if v == "" else v
+
+
+def fail_safe_triage() -> TriageItem:
+    """Unparseable answer -> a normal, action-free highlight: the mail shows
+    up in the digest but can never trigger a proposal or urgency."""
+    return TriageItem(importance="normal",
+                      summary="Kunne ikke klassificeres automatisk — se mailen i Gmail.",
+                      action_required=False, confidence=0.0)

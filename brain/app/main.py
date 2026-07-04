@@ -9,32 +9,45 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 
-from . import aula, config, dashboard, review, store, telegram, vikunja
+from . import aula, config, dashboard, review, store, telegram, triage, vikunja
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("lifehub")
 scheduler = AsyncIOScheduler(timezone=config.TZ)
 
 # Overlap guard: a slow LLM classification (7B on CPU can take minutes per
-# mail) must not be overtaken by the next poll tick.
-_aula_lock = asyncio.Lock()
+# mail) must not be overtaken by the next poll tick. Shared by both mail
+# streams (Aula + general triage) so they never overlap the LLM either.
+_mail_lock = asyncio.Lock()
 
 
 async def poll_gmail() -> dict:
     if not config.GMAIL_ENABLED:
         return {"enabled": False}
-    if _aula_lock.locked():
+    if _mail_lock.locked():
         log.info("gmail poll skipped — previous run still working")
         return {"skipped": True}
-    async with _aula_lock:
+    async with _mail_lock:
         return await aula.poll_and_process()
 
 
-async def _poll_gmail_job() -> None:
-    try:
-        await poll_gmail()
-    except Exception:
-        log.exception("gmail poll failed")
+async def poll_inbox() -> dict:
+    if not config.TRIAGE_ENABLED:
+        return {"enabled": False}
+    if _mail_lock.locked():
+        log.info("inbox poll skipped — previous run still working")
+        return {"skipped": True}
+    async with _mail_lock:
+        return await triage.poll_and_process()
+
+
+async def _poll_mail_job() -> None:
+    # Sequentially, so the two streams share one tick and never race the lock.
+    for poll in (poll_gmail, poll_inbox):
+        try:
+            await poll()
+        except Exception:
+            log.exception("mail poll failed")
 
 
 @asynccontextmanager
@@ -46,9 +59,10 @@ async def lifespan(_: FastAPI):
     scheduler.add_job(dashboard.refresh_elpris, "interval", hours=1)
     scheduler.add_job(dashboard.refresh_finance, "interval", hours=6)
     scheduler.add_job(dashboard.morning_brief, CronTrigger(hour=6, minute=30))
-    if config.GMAIL_ENABLED:
-        scheduler.add_job(_poll_gmail_job, "interval",
+    if config.GMAIL_ENABLED or config.TRIAGE_ENABLED:
+        scheduler.add_job(_poll_mail_job, "interval",
                           minutes=config.GMAIL_POLL_MINUTES, jitter=30)
+        # Udløber pending forslag i begge streams (stream-agnostisk).
         scheduler.add_job(aula.expire_proposals, CronTrigger(hour=6, minute=0))
     scheduler.start()
     # Warm the caches once at boot.
@@ -122,6 +136,14 @@ async def api_aula_poll() -> dict:
 async def api_aula_info(days: int = 7) -> dict:
     """Dashboard feed: info items + recent proposals/autos with status."""
     return aula.feed(days=max(1, min(days, 31)))
+
+
+@app.post("/api/post/poll")
+async def api_post_poll() -> dict:
+    """Manual trigger for testing: curl -X POST .../api/post/poll"""
+    if not config.TRIAGE_ENABLED:
+        raise HTTPException(status_code=503, detail="TRIAGE_ENABLED=false")
+    return await poll_inbox()
 
 
 @app.post("/api/tasks/{task_id}/done")

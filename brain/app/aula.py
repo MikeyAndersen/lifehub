@@ -253,8 +253,9 @@ async def approve_item(item_id: int) -> str | None:
         return f"✅ Lagt i kalenderen: {item['title']}"
     if item["intent"] == "handling":
         due = item["deadline"] or item["date"]
+        src = "mail" if item.get("stream") == "inbox" else "Aula"
         task = await vikunja.create_task(item["title"], due=due,
-                                         description=f"Fra Aula: {item['summary']}")
+                                         description=f"Fra {src}: {item['summary']}")
         store.aula_update_item(item_id, status="approved",
                                vikunja_task_id=task["id"],
                                resolved_at=_now_iso())

@@ -28,7 +28,12 @@ from .google_auth_helper import google_creds
 
 log = logging.getLogger("lifehub")
 
-_HISTORY_KEY = "gmail_history_id"
+# To streams over samme postkasse: Aula-labelet (Del 3) og hele INBOX minus
+# støj (Del 4, generel post-triage). Hver stream har sin egen history-cursor.
+_STREAMS = {
+    "aula": {"cursor": "gmail_history_id"},
+    "inbox": {"cursor": "gmail_history_id_inbox"},
+}
 
 
 @dataclass
@@ -39,6 +44,8 @@ class RawMail:
     subject: str
     body_text: str
     mail_date: datetime  # tz-aware (Date header; UTC assumed if header is naive)
+    label_ids: tuple[str, ...] = ()
+    unsubscribe: bool = False  # List-Unsubscribe-header → nyhedsbrev/reklame
 
 
 def _service():
@@ -62,16 +69,34 @@ def _label_id(svc) -> str:
 _cached_label_id: str | None = None
 
 
+def aula_label_id() -> str | None:
+    """The Aula label's id, for the inbox stream's 'not mine' check.
+    None when the label doesn't exist (triage-only setups)."""
+    try:
+        return _label_id(_service())
+    except Exception:
+        return None
+
+
+def _stream_label_id(svc, stream: str) -> str:
+    return "INBOX" if stream == "inbox" else _label_id(svc)
+
+
+def _lookback_days(stream: str) -> int:
+    return (config.TRIAGE_LOOKBACK_DAYS if stream == "inbox"
+            else config.GMAIL_LOOKBACK_DAYS)
+
+
 # ── Sync: which message ids are new? ───────────────────────────────
 
 
-def _full_resync_ids(svc, label_id: str) -> list[str]:
+def _full_resync_ids(svc, label_id: str, lookback_days: int) -> list[str]:
     ids: list[str] = []
     token = None
     while True:
         resp = svc.users().messages().list(
             userId="me", labelIds=[label_id],
-            q=f"newer_than:{config.GMAIL_LOOKBACK_DAYS}d",
+            q=f"newer_than:{lookback_days}d",
             pageToken=token,
         ).execute()
         ids += [m["id"] for m in resp.get("messages", [])]
@@ -99,26 +124,27 @@ def _history_ids(svc, label_id: str, start: str) -> tuple[list[str], str]:
             return ids, newest
 
 
-def sync_new_message_ids() -> list[str]:
-    """New message ids under the Aula label since last poll. Persists the
-    history cursor; duplicates are harmless (unique message_id in store)."""
+def sync_new_message_ids(stream: str = "aula") -> list[str]:
+    """New message ids in the stream's label since last poll. Persists the
+    stream's history cursor; duplicates are harmless (unique message_id)."""
+    cursor_key = _STREAMS[stream]["cursor"]
     svc = _service()
-    label_id = _label_id(svc)
-    saved = store.kv_get(_HISTORY_KEY)
+    label_id = _stream_label_id(svc, stream)
+    saved = store.kv_get(cursor_key)
 
     if saved:
         try:
             ids, newest = _history_ids(svc, label_id, saved)
-            store.kv_set(_HISTORY_KEY, str(newest))
+            store.kv_set(cursor_key, str(newest))
             return ids
         except HttpError as exc:
             if exc.resp.status != 404:
                 raise
-            log.info("gmail historyId expired — full resync")
+            log.info("gmail historyId expired (%s) — full resync", stream)
 
-    ids = _full_resync_ids(svc, label_id)
+    ids = _full_resync_ids(svc, label_id, _lookback_days(stream))
     profile = svc.users().getProfile(userId="me").execute()
-    store.kv_set(_HISTORY_KEY, str(profile["historyId"]))
+    store.kv_set(cursor_key, str(profile["historyId"]))
     return ids
 
 
@@ -150,7 +176,7 @@ def fetch_headers(message_id: str) -> RawMail | None:
     try:
         msg = svc.users().messages().get(
             userId="me", id=message_id, format="metadata",
-            metadataHeaders=["From", "Subject", "Date"],
+            metadataHeaders=["From", "Subject", "Date", "List-Unsubscribe"],
         ).execute()
     except HttpError as exc:
         if exc.resp.status == 404:
@@ -159,7 +185,9 @@ def fetch_headers(message_id: str) -> RawMail | None:
     p = msg.get("payload", {})
     return RawMail(message_id=msg["id"], thread_id=msg.get("threadId", ""),
                    from_addr=_header(p, "From"), subject=_header(p, "Subject"),
-                   body_text="", mail_date=_parse_mail_date(_header(p, "Date")))
+                   body_text="", mail_date=_parse_mail_date(_header(p, "Date")),
+                   label_ids=tuple(msg.get("labelIds") or ()),
+                   unsubscribe=bool(_header(p, "List-Unsubscribe")))
 
 
 def _walk_parts(part: dict):
@@ -220,4 +248,6 @@ def fetch_mail(message_id: str) -> RawMail | None:
     return RawMail(message_id=msg["id"], thread_id=msg.get("threadId", ""),
                    from_addr=_header(p, "From"), subject=_header(p, "Subject"),
                    body_text=extract_body(p),
-                   mail_date=_parse_mail_date(_header(p, "Date")))
+                   mail_date=_parse_mail_date(_header(p, "Date")),
+                   label_ids=tuple(msg.get("labelIds") or ()),
+                   unsubscribe=bool(_header(p, "List-Unsubscribe")))

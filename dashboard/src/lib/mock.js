@@ -89,6 +89,17 @@ export function mockDocument(ambient = false) {
     },
   };
   if (!ambient) {
+    // Post-triage er admin-only som finans — aldrig i ambient, heller ikke i mock.
+    doc.post = {
+      new_today: 3,
+      info: [
+        { title: 'Årsopgørelse klar i TastSelv', summary: 'Skat: din årsopgørelse for 2025 er klar.', created_at: at(0, 7, 40), status: 'pending', importance: 'high', sender_kind: 'kommune' },
+      ],
+      recent: [
+        { title: 'Forny indboforsikring', intent: 'handling', status: 'pending', date: null, time: null, created_at: at(0, 8, 10), deadline: day(5) + 'T23:59', importance: 'high', sender_kind: 'forsikring' },
+        { title: 'Bekræft tandlægetid', intent: 'handling', status: 'approved', date: null, time: null, created_at: at(-1, 9, 0), deadline: day(2) + 'T12:00', importance: 'normal', sender_kind: 'sundhed' },
+      ],
+    };
     // Finans må ALDRIG med i ambient — heller ikke i mock.
     doc.finance = {
       accounts: [

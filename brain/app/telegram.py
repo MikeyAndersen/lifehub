@@ -75,7 +75,9 @@ def _aula_proposal_keyboard(item_id: int) -> dict:
 
 async def send_aula_proposal(item_id: int, item: dict, urgent: bool = False) -> None:
     kind = "📅 Kalender" if item["intent"] == "event" else "☑️ Opgave"
-    lines = [f"{'⚠️ ' if urgent else ''}📧 Aula-forslag — {kind}",
+    source = ("📮 Post-forslag" if item.get("stream") == "inbox"
+              else "📧 Aula-forslag")
+    lines = [f"{'⚠️ ' if urgent else ''}{source} — {kind}",
              item["title"]]
     if when := _aula_when(item):
         lines.append(when)
@@ -83,6 +85,17 @@ async def send_aula_proposal(item_id: int, item: dict, urgent: bool = False) -> 
         lines.append(item["summary"])
     await send_plain(config.TELEGRAM_ADMIN_CHAT_ID, "\n".join(lines),
                      _aula_proposal_keyboard(item_id))
+
+
+async def send_post_notice(item: dict, urgent: bool = False) -> None:
+    """Important no-action mail from the general triage — admin only,
+    never broadcast (the inbox is private, unlike the Aula stream)."""
+    text = f"{'⚠️' if urgent else '📮'} Post: {item['title']}"
+    if item.get("summary"):
+        text += f"\n{item['summary']}"
+    if item.get("deadline"):
+        text += f"\nFrist: {item['deadline'][:16].replace('T', ' kl. ')}"
+    await send_plain(config.TELEGRAM_ADMIN_CHAT_ID, text)
 
 
 async def send_aula_auto_created(item_id: int, item: dict) -> None:
