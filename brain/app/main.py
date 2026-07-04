@@ -58,6 +58,8 @@ async def lifespan(_: FastAPI):
     scheduler.add_job(dashboard.refresh_weather, "interval", minutes=30)
     scheduler.add_job(dashboard.refresh_elpris, "interval", hours=1)
     scheduler.add_job(dashboard.refresh_finance, "interval", hours=6)
+    scheduler.add_job(dashboard.refresh_madplan, "interval",
+                      minutes=config.MADPLAN_POLL_MINUTES, jitter=30)
     scheduler.add_job(dashboard.morning_brief, CronTrigger(hour=6, minute=30))
     if config.GMAIL_ENABLED or config.TRIAGE_ENABLED:
         scheduler.add_job(_poll_mail_job, "interval",
@@ -67,7 +69,8 @@ async def lifespan(_: FastAPI):
     scheduler.start()
     # Warm the caches once at boot.
     for job in (dashboard.refresh_weather, dashboard.refresh_elpris,
-                dashboard.refresh_calendar, dashboard.refresh_tasks):
+                dashboard.refresh_calendar, dashboard.refresh_tasks,
+                dashboard.refresh_madplan):
         try:
             await job()
         except Exception:
@@ -115,13 +118,19 @@ def _viewer_email(request: Request) -> str | None:
 
 @app.get("/api/dashboard")
 async def api_dashboard(request: Request) -> dict:
-    return dashboard.build(_viewer_email(request), ambient=False)
+    doc = dashboard.build(_viewer_email(request), ambient=False)
+    # Fire-and-forget: opfrisk madplan hvis cachen er stale (§3.3). Rammer
+    # næste load; dette svar bruger nuværende cache.
+    asyncio.create_task(dashboard.ensure_fresh_madplan())
+    return doc
 
 
 @app.get("/api/ambient")
 async def api_ambient(request: Request) -> dict:
     # Shared-surface feed: never contains finance, regardless of viewer.
-    return dashboard.build(_viewer_email(request), ambient=True)
+    doc = dashboard.build(_viewer_email(request), ambient=True)
+    asyncio.create_task(dashboard.ensure_fresh_madplan())
+    return doc
 
 
 @app.post("/api/aula/poll")

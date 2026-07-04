@@ -7,8 +7,17 @@ const SEP = '  ·  ';
    top-3 opgaver og én meta-linje. Manglende datablokke udelades stille. */
 export default function AmbientColumn({ data, now }) {
   const todayKey = `${now.getFullYear()}-${p2(now.getMonth() + 1)}-${p2(now.getDate())}`;
+  const tmr = new Date(now.getTime() + 864e5);
+  const tomorrowKey = `${tmr.getFullYear()}-${p2(tmr.getMonth() + 1)}-${p2(tmr.getDate())}`;
   const events = (data?.events || []).slice(0, 6);
   const tasks = (data?.tasks || []).slice(0, 3);
+
+  // Madplan i ambient: kun i dag + i morgen (§3.3), og kun dage med en ret.
+  const mpDays = data?.madplan?.days || [];
+  const dinners = [
+    { label: 'I dag', today: true, day: mpDays.find((d) => d.date === todayKey) },
+    { label: 'I morgen', today: false, day: mpDays.find((d) => d.date === tomorrowKey) },
+  ].filter((x) => x.day?.dish_name);
 
   const meta = [];
   if (data?.weather) {
@@ -71,6 +80,21 @@ export default function AmbientColumn({ data, now }) {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {dinners.length > 0 && (
+        <div>
+          <div className="amb-section-label">Aftensmad</div>
+          <div>
+            {dinners.map((x) => (
+              <div className="amb-ev-row" key={x.label}>
+                <span className={`amb-ev-time${x.today ? ' today' : ''}`}>{x.label}</span>
+                <span className="amb-ev-title">{x.day.dish_name}</span>
+                <span className="amb-ev-loc" />
+              </div>
+            ))}
           </div>
         </div>
       )}

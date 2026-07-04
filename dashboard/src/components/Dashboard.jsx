@@ -5,7 +5,7 @@ import Hero from './widgets/Hero.jsx';
 import Kalender from './widgets/Kalender.jsx';
 import Opgaver from './widgets/Opgaver.jsx';
 import Foedselsdage from './widgets/Foedselsdage.jsx';
-import Middag from './widgets/Middag.jsx';
+import Ugeplan from './widgets/Ugeplan.jsx';
 import Afgange from './widgets/Afgange.jsx';
 import Aula from './widgets/Aula.jsx';
 import Post from './widgets/Post.jsx';
@@ -57,7 +57,7 @@ export default function Dashboard() {
         <Foedselsdage birthdays={data.birthdays} />
         <Aula aula={data.aula} />
         <Post post={data.post} />
-        <Middag madplan={data.madplan} />
+        <Ugeplan madplan={data.madplan} />
         <Afgange transit={data.transit} now={now} />
         {data.finance && !okoHidden && (
           <Oekonomi finance={data.finance} onHide={() => setOkoHidden(true)} />

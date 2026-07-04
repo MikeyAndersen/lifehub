@@ -94,6 +94,15 @@ def get_cache(key: str, max_age: float | None = None):
     return json.loads(row[0])
 
 
+def get_cache_meta(key: str):
+    """(payload, updated_at) eller None — så kalderen selv kan afgøre stale-alder."""
+    with _db() as con:
+        row = con.execute("SELECT payload, updated_at FROM cache WHERE key=?", (key,)).fetchone()
+    if not row:
+        return None
+    return json.loads(row[0]), row[1]
+
+
 def add_pending(payload: dict) -> str:
     pid = uuid.uuid4().hex[:12]
     with _db() as con:

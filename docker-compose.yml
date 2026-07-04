@@ -12,6 +12,12 @@ services:
     depends_on:
       - ollama
       - vikunja
+    networks:
+      # default = ollama/vikunja; lifehub_net = delt net med nova-madplan
+      # (brain → http://madplan-api:8000). Netværket oprettes på serveren:
+      #   docker network create lifehub_net
+      - default
+      - lifehub_net
 
   ollama:
     image: ollama/ollama:latest
@@ -45,3 +51,8 @@ services:
   # The Astro dashboard is a static build — serve it with whatever you
   # already use (Caddy/nginx/One.com/Cloudflare Pages). For local dev:
   # cd dashboard && npm run dev
+
+networks:
+  # Delt, eksternt net mellem lifehub- og nova-madplan-stacken (spec §A7).
+  lifehub_net:
+    external: true

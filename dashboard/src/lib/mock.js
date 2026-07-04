@@ -16,6 +16,27 @@ function at(off, hh, mm = 0) {
 }
 const day = (off) => at(off, 0).slice(0, 10);
 
+/** Mandagens ISO-dato i indeværende uge. */
+function weekMonday() {
+  const d = new Date();
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
+}
+
+/** Syntetisk §2.2-ugeplan: mandag→søndag, i dag markeret, fortid = cooked. */
+function mockWeek() {
+  const names = ['Kylling i karry', 'Tomatrisotto', 'Tacos', 'Fiskefrikadeller', 'Pizza', 'Rester', null];
+  const wd = ['mandag', 'tirsdag', 'onsdag', 'torsdag', 'fredag', 'lørdag', 'søndag'];
+  const mon = new Date(`${weekMonday()}T00:00:00`);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return names.map((name, i) => {
+    const d = new Date(mon); d.setDate(mon.getDate() + i);
+    const date = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
+    const status = !name ? 'empty' : d < today ? 'cooked' : 'planned';
+    return { date, weekday: wd[i], dish_id: name ? i + 1 : null, dish_name: name, status, note: null };
+  });
+}
+
 /** Lokal ISO-tid `min` minutter fra nu (afgange). */
 function inMin(min) {
   const d = new Date(Date.now() + min * 60000);
@@ -76,10 +97,12 @@ export function mockDocument(ambient = false) {
         dkk_kwh: Math.round((0.9 + 1.4 * Math.abs(Math.sin((h - 4) / 5))) * 100) / 100,
       })),
     },
-    // Fase 2-blokke — endnu ikke i det rigtige API-dokument:
+    // Fase 2-madplan: §2.2 WeekPlan (brain cacher madplans /api/weekplan/current).
     madplan: {
-      tonight: { dish: 'Pasta med kødsauce', cook: 'Jonas laver mad', note: 'Husk: tag kødet ud af fryseren i eftermiddag' },
-      status: 'ok',
+      week_start: weekMonday(),
+      days: mockWeek(),
+      updated_at: new Date().toISOString(),
+      stale: false,
     },
     transit: {
       station: 'Lyngby st.',

@@ -314,14 +314,30 @@ body {
   color: var(--lh-text-3);
 }
 
-/* Middag i aften */
-.dinner-dish { font-size: var(--lh-fs-title); font-weight: 500; color: var(--lh-text); margin-bottom: 6px; }
-.dinner-cook { font-size: var(--lh-fs-body-s); color: var(--lh-text-2); line-height: 1.5; }
-.dinner-note {
-  margin-top: 12px;
-  padding-top: 12px;
+/* Ugeplan (fase 2-madplan) — 7 dage, i dag fremhævet */
+.wp-list { display: flex; flex-direction: column; }
+.wp-row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  gap: 12px;
+  align-items: baseline;
+  padding: 8px 0;
   border-top: 1px solid var(--lh-line-soft);
-  font-size: var(--lh-fs-label);
+}
+.wp-row:first-child { border-top: none; }
+.wp-day {
+  font-size: var(--lh-fs-meta);
+  color: var(--lh-text-3);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.wp-row.today .wp-day { color: var(--lh-signal); }
+.wp-dish { font-size: var(--lh-fs-body); color: var(--lh-text); min-width: 0; }
+.wp-row.today .wp-dish { font-weight: 500; }
+.wp-dish.empty { color: var(--lh-text-4); }
+.wp-check {
+  font-family: var(--lh-font-mono);
+  font-size: 12px;
   color: var(--lh-text-3);
 }
 

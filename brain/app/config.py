@@ -65,4 +65,12 @@ LATITUDE = float(os.getenv("LATITUDE", "56.15"))
 LONGITUDE = float(os.getenv("LONGITUDE", "10.21"))
 ELPRIS_AREA = os.getenv("ELPRIS_AREA", "DK1")
 
+# ── Madplan-integration (Fase 2, INTEGRATION_SPEC §3.3/§A5) ──────────
+# Tom MADPLAN_URL (eller tomt token) slår ugeplan-feed'et helt fra:
+# intet poll-arbejde, ingen kald, ingen madplan-blok på dashboardet.
+MADPLAN_URL = os.getenv("MADPLAN_URL", "")
+LIFEHUB_API_TOKEN = os.getenv("LIFEHUB_API_TOKEN", "")  # brain → madplan bearer
+MADPLAN_POLL_MINUTES = int(os.getenv("MADPLAN_POLL_MINUTES", "10"))
+MADPLAN_STALE_MINUTES = int(os.getenv("MADPLAN_STALE_MINUTES", "10"))
+
 DB_PATH = os.getenv("DB_PATH", "./lifehub.db")
