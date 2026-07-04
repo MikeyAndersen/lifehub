@@ -8,7 +8,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 
-from . import config, dashboard, store, telegram
+from . import config, dashboard, review, store, telegram
 
 logging.basicConfig(level=logging.INFO)
 scheduler = AsyncIOScheduler(timezone=config.TZ)
@@ -51,6 +51,20 @@ async def telegram_webhook(secret: str, request: Request, bg: BackgroundTasks) -
     # Answer Telegram immediately; do the LLM/transcription work in the background.
     bg.add_task(telegram.handle_update, update)
     return {"ok": True}
+
+
+@app.post("/api/review/drain")
+async def review_drain(request: Request) -> dict:
+    """Called repeatedly by the GPU boot agent until processed == 0.
+
+    Locked behind REVIEW_DRAIN_TOKEN; with no token configured the endpoint
+    is closed entirely (fail-closed), matching the opt-in nature of Pass 2.
+    """
+    auth = request.headers.get("Authorization", "")
+    if (not config.REVIEW_DRAIN_TOKEN
+            or auth != f"Bearer {config.REVIEW_DRAIN_TOKEN}"):
+        raise HTTPException(status_code=403)
+    return await review.drain()
 
 
 def _viewer_email(request: Request) -> str | None:
