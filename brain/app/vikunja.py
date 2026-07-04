@@ -1,6 +1,8 @@
 """Minimal Vikunja REST client for tasks and the shopping list."""
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 import httpx
 
 from . import config
@@ -92,6 +94,15 @@ def _due(t: dict) -> str | None:
     return None if not due or due.startswith(_NO_DUE) else due
 
 
+def _parse_ts(value: str | None) -> datetime | None:
+    if not value or value.startswith(_NO_DUE):
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
 async def open_tasks(limit: int = 40) -> list[dict]:
     # Current Vikunja lists tasks across all projects via GET /api/v1/tasks.
     # The old /tasks/all endpoint 400s ("Invalid model provided") once a
@@ -110,3 +121,22 @@ async def open_tasks(limit: int = 40) -> list[dict]:
     tasks.sort(key=lambda t: _due(t) or "9999")  # uden frist → nederst
     return [{"title": t["title"], "due": _due(t),
              "project_id": t.get("project_id"), "id": t["id"]} for t in tasks]
+
+
+async def done_tasks(hours: int = 48, limit: int = 40) -> list[dict]:
+    """Tasks completed within the last `hours`, newest first."""
+    params = {"filter": "done = true", "sort_by": "done_at",
+              "order_by": "desc", "per_page": limit}
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.get(f"{config.VIKUNJA_URL}/api/v1/tasks",
+                             params=params, headers=_HEADERS)
+        r.raise_for_status()
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    out = []
+    for t in (r.json() or []):
+        done_at = _parse_ts(t.get("done_at"))
+        if not t.get("done") or done_at is None or done_at < cutoff:
+            continue
+        out.append({"title": t["title"], "done_at": t.get("done_at"),
+                    "project_id": t.get("project_id"), "id": t["id"]})
+    return out

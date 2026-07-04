@@ -49,6 +49,16 @@ export const fmtDue = (iso) => {
   return `${WDS[d.getDay()]} ${d.getDate()}.`;
 };
 
+/** Afkrydsningstidspunkt: "i dag 14:32" / "i går 09:15" / "ons 2. 14:32". */
+export const fmtDoneAt = (iso) => {
+  const d = new Date(iso);
+  const hm = p2(d.getHours()) + ':' + p2(d.getMinutes());
+  const off = dayOffset(iso);
+  if (off === 0) return `i dag ${hm}`;
+  if (off === -1) return `i går ${hm}`;
+  return `${WDS[d.getDay()]} ${d.getDate()}. ${hm}`;
+};
+
 /** Fødselsdags-dato: "søn 5. jul." */
 export const fmtBdDate = (iso) =>
   new Date(iso).toLocaleDateString('da-DK', { weekday: 'short', day: 'numeric', month: 'short' });

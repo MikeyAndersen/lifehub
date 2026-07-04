@@ -28,6 +28,7 @@ async def refresh_calendar() -> None:
 async def refresh_tasks() -> None:
     try:
         store.set_cache("tasks", await vikunja.open_tasks())
+        store.set_cache("tasks_done", await vikunja.done_tasks(hours=48))
     except Exception:
         log.exception("task refresh failed")
 
@@ -80,6 +81,7 @@ def build(viewer_email: str | None, ambient: bool = False) -> dict:
         "events": store.get_cache("events") or [],
         "birthdays": store.get_cache("birthdays") or [],
         "tasks": store.get_cache("tasks") or [],
+        "tasks_done": store.get_cache("tasks_done") or [],
         "weather": store.get_cache("weather"),
         "elpris": store.get_cache("elpris"),
     }

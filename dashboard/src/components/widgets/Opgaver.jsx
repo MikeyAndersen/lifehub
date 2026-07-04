@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import Card from './Card.jsx';
 import { setTaskDone } from '../../lib/api.js';
-import { fmtDue, isOverdue } from '../../lib/format.js';
+import { fmtDue, fmtDoneAt, isOverdue } from '../../lib/format.js';
 
 /* Opgaver — afkrydsning skriver tilbage til Vikunja via brain.
-   Optimistisk update; rulles tilbage hvis kaldet fejler. */
-export default function Opgaver({ tasks = [] }) {
+   Optimistisk update; rulles tilbage hvis kaldet fejler.
+   Knappen nederst folder opgaver afkrydset de seneste 48 timer ud. */
+export default function Opgaver({ tasks = [], doneTasks = [] }) {
   const [done, setDone] = useState({});
   const [pending, setPending] = useState({});
   const [error, setError] = useState(null);
+  const [showDone, setShowDone] = useState(false);
 
   const toggle = async (id) => {
     if (pending[id]) return;
@@ -50,6 +52,20 @@ export default function Opgaver({ tasks = [] }) {
         );
       })}
       {error && <p className="muted">{error}</p>}
+
+      <button className="linkish" onClick={() => setShowDone((v) => !v)}>
+        {showDone ? 'Skjul afkrydsede' : `Vis afkrydsede (${doneTasks.length})`}
+      </button>
+      {showDone && doneTasks.length === 0 && (
+        <p className="muted">Ingen afkrydsede de seneste 48 timer.</p>
+      )}
+      {showDone && doneTasks.map((t) => (
+        <div key={t.id} className="task-row done">
+          <span className="task-box">✓</span>
+          <span className="task-title">{t.title}</span>
+          <span className="task-due">{fmtDoneAt(t.done_at)}</span>
+        </div>
+      ))}
     </Card>
   );
 }

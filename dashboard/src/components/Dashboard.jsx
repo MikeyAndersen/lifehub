@@ -51,7 +51,7 @@ export default function Dashboard() {
 
       <div className="cards">
         <Kalender events={data.events} />
-        <Opgaver tasks={data.tasks} />
+        <Opgaver tasks={data.tasks} doneTasks={data.tasks_done} />
         <Foedselsdage birthdays={data.birthdays} />
         <Middag madplan={data.madplan} />
         <Afgange transit={data.transit} now={now} />

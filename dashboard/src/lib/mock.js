@@ -53,6 +53,10 @@ export function mockDocument(ambient = false) {
       { id: 4, title: 'Betal Almas svømmekontingent', due: at(1, 17), project_id: 1 },
       { id: 5, title: 'Aflever biblioteksbøger', due: at(2, 17), project_id: 1 },
     ],
+    tasks_done: [
+      { id: 6, title: 'Ring til mor', done_at: at(0, 9, 15), project_id: 1 },
+      { id: 7, title: 'Tøm opvaskemaskinen', done_at: at(-1, 19, 40), project_id: 1 },
+    ],
     weather: { now_c: 18.2, code: 2, wind_ms: 4.1, today_max: 21.0, today_min: 12.4, rain_pct: 20 },
     elpris: {
       now_dkk_kwh: 1.42,
