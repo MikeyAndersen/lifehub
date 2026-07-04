@@ -8,7 +8,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 
-from . import config, dashboard, review, store, telegram
+from . import config, dashboard, review, store, telegram, vikunja
 
 logging.basicConfig(level=logging.INFO)
 scheduler = AsyncIOScheduler(timezone=config.TZ)
@@ -81,6 +81,29 @@ async def api_dashboard(request: Request) -> dict:
 async def api_ambient(request: Request) -> dict:
     # Shared-surface feed: never contains finance, regardless of viewer.
     return dashboard.build(_viewer_email(request), ambient=True)
+
+
+@app.post("/api/tasks/{task_id}/done")
+async def api_task_done(task_id: int, request: Request) -> dict:
+    """Checkbox write-back from the dashboard: mark a Vikunja task done/undone.
+
+    Sits behind the same Cloudflare Access gate as the rest of /api. Body is
+    optional JSON {"done": bool}; omitted means done=true.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    done = bool(body.get("done", True)) if isinstance(body, dict) else True
+    try:
+        task = await vikunja.set_task_done(task_id, done)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="Vikunja unavailable") from exc
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    # Refresh the cache so the next dashboard poll reflects reality.
+    await dashboard.refresh_tasks()
+    return {"ok": True, "id": task_id, "done": bool(task.get("done", done))}
 
 
 @app.post("/api/brief/run")

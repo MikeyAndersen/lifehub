@@ -15,3 +15,14 @@ export async function fetchDashboard(ambient = false) {
     throw err;
   }
 }
+
+/** Markér en opgave som færdig/åben i Vikunja via brain. Kaster ved fejl. */
+export async function setTaskDone(id, done = true) {
+  const res = await fetch(`${BASE}/api/tasks/${id}/done`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ done }),
+  });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  return res.json();
+}

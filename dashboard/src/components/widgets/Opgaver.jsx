@@ -1,11 +1,31 @@
 import { useState } from 'react';
 import Card from './Card.jsx';
+import { setTaskDone } from '../../lib/api.js';
 import { fmtDue, isOverdue } from '../../lib/format.js';
 
-/* Opgaver — afkrydsning er kun lokal sessionstilstand (API'et er læse-eneste). */
+/* Opgaver — afkrydsning skriver tilbage til Vikunja via brain.
+   Optimistisk update; rulles tilbage hvis kaldet fejler. */
 export default function Opgaver({ tasks = [] }) {
   const [done, setDone] = useState({});
-  const toggle = (id) => setDone((s) => ({ ...s, [id]: !s[id] }));
+  const [pending, setPending] = useState({});
+  const [error, setError] = useState(null);
+
+  const toggle = async (id) => {
+    if (pending[id]) return;
+    const next = !done[id];
+    setDone((s) => ({ ...s, [id]: next }));
+    setPending((s) => ({ ...s, [id]: true }));
+    setError(null);
+    try {
+      await setTaskDone(id, next);
+    } catch {
+      setDone((s) => ({ ...s, [id]: !next }));
+      setError('Kunne ikke opdatere opgaven i Vikunja — prøv igen.');
+    } finally {
+      setPending((s) => ({ ...s, [id]: false }));
+    }
+  };
+
   const open = tasks.filter((t) => !done[t.id]).length;
 
   return (
@@ -24,11 +44,12 @@ export default function Opgaver({ tasks = [] }) {
             <span className="task-title">{t.title}</span>
             <span className="task-due">
               {overdue && <span className="task-dot" />}
-              {t.due ? fmtDue(t.due) : ''}
+              {t.due ? fmtDue(t.due) : <span className="muted">uden dato</span>}
             </span>
           </div>
         );
       })}
+      {error && <p className="muted">{error}</p>}
     </Card>
   );
 }

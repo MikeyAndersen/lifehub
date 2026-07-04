@@ -68,17 +68,45 @@ async def delete_task(ref: dict) -> None:
             r.raise_for_status()
 
 
+async def set_task_done(task_id: int, done: bool = True) -> dict | None:
+    """Mark a task done/undone. Same fetch-merge-post dance as update_task,
+    since Vikunja's task update (POST /tasks/{id}) replaces the whole task.
+    None if the task no longer exists."""
+    task = await get_task({"task_id": task_id})
+    if task is None:
+        return None
+    task["done"] = done
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.post(f"{config.VIKUNJA_URL}/api/v1/tasks/{task_id}",
+                              json=task, headers=_HEADERS)
+        r.raise_for_status()
+        return r.json()
+
+
+# Vikunja encodes "no due date" as the zero timestamp (see update_task above).
+_NO_DUE = "0001-01-01"
+
+
+def _due(t: dict) -> str | None:
+    due = t.get("due_date")
+    return None if not due or due.startswith(_NO_DUE) else due
+
+
 async def open_tasks(limit: int = 40) -> list[dict]:
     # Current Vikunja lists tasks across all projects via GET /api/v1/tasks.
     # The old /tasks/all endpoint 400s ("Invalid model provided") once a
     # filter is supplied. `filter=done = false` drops completed tasks
     # server-side; an empty result comes back as JSON null, not [].
-    params = {"filter": "done = false", "sort_by": "due_date", "per_page": limit}
+    # filter_include_nulls=true is required alongside sort_by=due_date:
+    # without it Vikunja silently omits tasks that have no due date set
+    # (its own frontend always sends it).
+    params = {"filter": "done = false", "sort_by": "due_date",
+              "filter_include_nulls": "true", "per_page": limit}
     async with httpx.AsyncClient(timeout=15) as client:
         r = await client.get(f"{config.VIKUNJA_URL}/api/v1/tasks",
                              params=params, headers=_HEADERS)
         r.raise_for_status()
     tasks = [t for t in (r.json() or []) if not t.get("done")]
-    tasks.sort(key=lambda t: t.get("due_date") or "9999")
-    return [{"title": t["title"], "due": t.get("due_date"),
+    tasks.sort(key=lambda t: _due(t) or "9999")  # uden frist → nederst
+    return [{"title": t["title"], "due": _due(t),
              "project_id": t.get("project_id"), "id": t["id"]} for t in tasks]
