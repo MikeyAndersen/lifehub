@@ -10,7 +10,7 @@ import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from . import config, gcal, llm, store, telegram, vikunja
+from . import aula, config, gcal, llm, store, telegram, vikunja
 from .feeds import elpris, finance, stubs, weather
 
 log = logging.getLogger("lifehub")
@@ -66,6 +66,14 @@ async def morning_brief() -> None:
     }
     try:
         text = await llm.compose_brief(ctx)
+        # Aula-digest: deterministisk sektion efter LLM-teksten. Info-items
+        # medtages én gang (markeres briefed) og vises aldrig igen.
+        if config.GMAIL_ENABLED:
+            aula_lines, expired = aula.collect_brief_digest()
+            if aula_lines:
+                text += "\n📧 Aula: " + " · ".join(aula_lines)
+            if expired:
+                text += f"\n⏳ {expired} Aula-forslag udløb ubesvaret."
         store.set_cache("brief", {"text": text,
                                   "date": datetime.now(ZoneInfo(config.TZ)).date().isoformat()})
         await telegram.broadcast_brief(text)
@@ -85,6 +93,11 @@ def build(viewer_email: str | None, ambient: bool = False) -> dict:
         "weather": store.get_cache("weather"),
         "elpris": store.get_cache("elpris"),
     }
+    if config.GMAIL_ENABLED:
+        try:
+            doc["aula"] = aula.feed(days=7)
+        except Exception:
+            log.exception("aula feed failed")
     is_admin = bool(viewer_email) and viewer_email.lower() in config.ADMIN_EMAILS
     if is_admin and not ambient:
         doc["finance"] = store.get_cache("finance") or {"status": "not_configured"}

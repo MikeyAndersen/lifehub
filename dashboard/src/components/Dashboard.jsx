@@ -7,6 +7,7 @@ import Opgaver from './widgets/Opgaver.jsx';
 import Foedselsdage from './widgets/Foedselsdage.jsx';
 import Middag from './widgets/Middag.jsx';
 import Afgange from './widgets/Afgange.jsx';
+import Aula from './widgets/Aula.jsx';
 import Oekonomi from './widgets/Oekonomi.jsx';
 
 /* Interaktiv visning — telefon-først, flydende kort-flow.
@@ -53,6 +54,7 @@ export default function Dashboard() {
         <Kalender events={data.events} />
         <Opgaver tasks={data.tasks} doneTasks={data.tasks_done} />
         <Foedselsdage birthdays={data.birthdays} />
+        <Aula aula={data.aula} />
         <Middag madplan={data.madplan} />
         <Afgange transit={data.transit} now={now} />
         {data.finance && !okoHidden && (

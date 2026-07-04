@@ -36,6 +36,121 @@ async def send(chat_id: int, text: str, reply_markup: dict | None = None) -> Non
     await _call("sendMessage", **params)
 
 
+async def send_plain(chat_id: int, text: str,
+                     reply_markup: dict | None = None) -> int:
+    """No parse_mode: mail-derived text renders harmlessly no matter what
+    markup an Aula mail tries to smuggle in. Returns the message_id."""
+    params: dict = {"chat_id": chat_id, "text": text}
+    if reply_markup:
+        params["reply_markup"] = reply_markup
+    resp = await _call("sendMessage", **params)
+    return resp["result"]["message_id"]
+
+
+# ── Aula (Del 3): proposals, auto notifications, callbacks ──────────
+# Everything mail-derived goes through send_plain. callback_data carries only
+# "aula:{action}:{item_id}" (Telegram's 64-byte cap) — never payload.
+
+
+def _aula_when(item: dict) -> str:
+    parts = []
+    if item.get("date"):
+        parts.append(item["date"])
+    if item.get("time") and not item.get("all_day"):
+        parts.append(f"kl. {item['time']}")
+    elif item.get("all_day"):
+        parts.append("(hele dagen)")
+    if item.get("deadline"):
+        parts.append(f"frist {item['deadline'][:16].replace('T', ' kl. ')}")
+    return " ".join(parts)
+
+
+def _aula_proposal_keyboard(item_id: int) -> dict:
+    return {"inline_keyboard": [[
+        {"text": "✅ Opret", "callback_data": f"aula:approve:{item_id}"},
+        {"text": "✏️ Redigér", "callback_data": f"aula:edit:{item_id}"},
+        {"text": "🗑 Afvis", "callback_data": f"aula:reject:{item_id}"},
+    ]]}
+
+
+async def send_aula_proposal(item_id: int, item: dict, urgent: bool = False) -> None:
+    kind = "📅 Kalender" if item["intent"] == "event" else "☑️ Opgave"
+    lines = [f"{'⚠️ ' if urgent else ''}📧 Aula-forslag — {kind}",
+             item["title"]]
+    if when := _aula_when(item):
+        lines.append(when)
+    if item.get("summary"):
+        lines.append(item["summary"])
+    await send_plain(config.TELEGRAM_ADMIN_CHAT_ID, "\n".join(lines),
+                     _aula_proposal_keyboard(item_id))
+
+
+async def send_aula_auto_created(item_id: int, item: dict) -> None:
+    text = (f"📅 Auto-oprettet fra Aula: {item['title']}"
+            + (f"\n{w}" if (w := _aula_when(item)) else ""))
+    await send_plain(config.TELEGRAM_ADMIN_CHAT_ID, text,
+                     {"inline_keyboard": [[
+                         {"text": "🗑 Fortryd", "callback_data": f"aula:undo:{item_id}"},
+                     ]]})
+
+
+async def send_aula_urgent_info(item: dict) -> None:
+    text = f"⚠️ Aula: {item['title']}"
+    if item.get("summary"):
+        text += f"\n{item['summary']}"
+    for chat_id in config.TELEGRAM_ALLOWED_CHAT_IDS:
+        await send_plain(chat_id, text)
+
+
+async def _handle_aula_callback(cq: dict) -> None:
+    from . import aula  # deferred: aula imports this module at load time
+
+    chat_id = cq["message"]["chat"]["id"]
+    message_id = cq["message"]["message_id"]
+    await _call("answerCallbackQuery", callback_query_id=cq["id"])
+    _, action, sid = cq["data"].split(":", 2)
+    item = store.aula_get_item(int(sid)) if sid.isdigit() else None
+    if item is None:
+        await send_plain(chat_id, "Forslaget er udløbet.")
+        return
+
+    async def _edit_msg(text: str) -> None:
+        await _call("editMessageText", chat_id=chat_id, message_id=message_id,
+                    text=text)
+
+    if action == "approve":
+        result = await aula.approve_item(item["id"])
+        await _edit_msg(result if result else "Forslaget er udløbet.")
+    elif action == "reject":
+        ok = aula.reject_item(item["id"])
+        await _edit_msg(f"🗑 Afvist: {item['title']}" if ok
+                        else "Forslaget er udløbet.")
+    elif action == "undo":
+        ok = aula.undo_auto(item["id"])
+        await _edit_msg(f"🗑 Fortrudt — {item['title']} er slettet fra kalenderen."
+                        if ok else "Kunne ikke fortryde — eventet er måske allerede væk.")
+    elif action == "edit":
+        prompt_id = await send_plain(chat_id, f"✏️ {item['title']}\n"
+                                     "Skriv rettelsen som svar på denne besked.")
+        store.kv_set(f"aula_edit:{chat_id}:{prompt_id}", str(item["id"]))
+
+
+async def _maybe_handle_aula_edit_reply(msg: dict, text: str) -> bool:
+    """A reply to one of our ✏️ prompts carries the correction. True = handled."""
+    reply_to = (msg.get("reply_to_message") or {}).get("message_id")
+    if not reply_to:
+        return False
+    key = f"aula_edit:{msg['chat']['id']}:{reply_to}"
+    item_id = store.kv_get(key)
+    if not item_id:
+        return False
+    from . import aula  # deferred: aula imports this module at load time
+    store.kv_del(key)
+    result = await aula.apply_edit(int(item_id), text)
+    await send_plain(msg["chat"]["id"], result)
+    return True
+
+
 def _confirm_keyboard(pid: str) -> dict:
     return {"inline_keyboard": [[
         {"text": "✅ Opret", "callback_data": f"ok:{pid}"},
@@ -119,6 +234,9 @@ async def handle_update(update: dict) -> None:
         chat_id = cq["message"]["chat"]["id"]
         if chat_id not in config.TELEGRAM_ALLOWED_CHAT_IDS:
             return
+        if cq.get("data", "").startswith("aula:"):
+            await _handle_aula_callback(cq)
+            return
         action, _, pid = cq["data"].partition(":")
         parsed = store.pop_pending(pid)
         await _call("answerCallbackQuery", callback_query_id=cq["id"])
@@ -157,6 +275,10 @@ async def handle_update(update: dict) -> None:
     if text.startswith("/start"):
         await send(chat_id, "Hej! Send mig tekst eller en voicebesked — jeg laver det "
                             "om til kalenderaftaler, opgaver eller indkøb.")
+        return
+
+    # Svar på en ✏️ Aula-redigér-prompt fanges før det almindelige flow.
+    if await _maybe_handle_aula_edit_reply(msg, text):
         return
 
     parsed = await llm.parse_message(text)

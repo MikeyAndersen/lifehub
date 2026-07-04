@@ -25,6 +25,9 @@ export default function AmbientColumn({ data, now }) {
   if (data?.transit?.station && deps.length) {
     meta.push(`${data.transit.station} ${deps.join(' · ')}`);
   }
+  if (data?.aula?.new_today > 0) {
+    meta.push(`Aula: ${data.aula.new_today} ny${data.aula.new_today === 1 ? '' : 'e'} i dag`);
+  }
 
   return (
     <div className="amb-col">

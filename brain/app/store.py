@@ -22,6 +22,25 @@ CREATE TABLE IF NOT EXISTS review_queue(
     created_at REAL,
     status TEXT DEFAULT 'pending'
 );
+CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT);
+CREATE TABLE IF NOT EXISTS aula_messages (
+    message_id TEXT PRIMARY KEY,
+    thread_id TEXT, from_addr TEXT, subject TEXT,
+    mail_date TEXT NOT NULL,
+    sender_verified INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'received',
+    received_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS aula_items (
+    id INTEGER PRIMARY KEY,
+    message_id TEXT NOT NULL REFERENCES aula_messages(message_id),
+    intent TEXT NOT NULL, title TEXT, summary TEXT,
+    date TEXT, time TEXT, all_day INTEGER, deadline TEXT,
+    confidence REAL, ambiguity_flags TEXT,
+    status TEXT NOT NULL,
+    gcal_event_id TEXT, vikunja_task_id INTEGER,
+    created_at TEXT NOT NULL, resolved_at TEXT
+);
 """
 
 
@@ -114,6 +133,207 @@ def recent_expenses(limit: int = 10) -> list[dict]:
             (limit,),
         ).fetchall()
     return [{"title": r[0], "amount_dkk": r[1], "noted_at": r[2]} for r in rows]
+
+
+# ── Key/value (gmail history cursor, aula edit-reply mapping) ──────
+
+
+def kv_get(key: str) -> str | None:
+    with _db() as con:
+        row = con.execute("SELECT value FROM kv WHERE key=?", (key,)).fetchone()
+    return row[0] if row else None
+
+
+def kv_set(key: str, value: str) -> None:
+    with _db() as con:
+        con.execute(
+            "INSERT INTO kv(key,value) VALUES(?,?) "
+            "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            (key, value),
+        )
+
+
+def kv_del(key: str) -> None:
+    with _db() as con:
+        con.execute("DELETE FROM kv WHERE key=?", (key,))
+
+
+# ── Aula-pipeline (Del 3) ───────────────────────────────────────────
+# Messages are inserted with status=received BEFORE classification, so a
+# crash mid-LLM leaves the row behind and the next poll resumes it.
+# Bodies are never stored — they are re-fetched from Gmail by message_id.
+
+_MSG_COLS = ("message_id", "thread_id", "from_addr", "subject", "mail_date",
+             "sender_verified", "status", "received_at")
+
+_ITEM_COLS = ("id", "message_id", "intent", "title", "summary", "date", "time",
+              "all_day", "deadline", "confidence", "ambiguity_flags", "status",
+              "gcal_event_id", "vikunja_task_id", "created_at", "resolved_at")
+
+
+def _msg_row(r) -> dict:
+    return dict(zip(_MSG_COLS, r))
+
+
+def _item_row(r) -> dict:
+    d = dict(zip(_ITEM_COLS, r))
+    d["ambiguity_flags"] = json.loads(d["ambiguity_flags"] or "[]")
+    return d
+
+
+def aula_insert_message(message_id: str, thread_id: str, from_addr: str,
+                        subject: str, mail_date: str, sender_verified: bool,
+                        received_at: str) -> bool:
+    """True if the row was new; False = already seen (idempotent)."""
+    with _db() as con:
+        cur = con.execute(
+            "INSERT OR IGNORE INTO aula_messages(message_id,thread_id,from_addr,"
+            "subject,mail_date,sender_verified,status,received_at) "
+            "VALUES(?,?,?,?,?,?,'received',?)",
+            (message_id, thread_id, from_addr, subject, mail_date,
+             int(sender_verified), received_at),
+        )
+        return cur.rowcount == 1
+
+
+def aula_get_message(message_id: str) -> dict | None:
+    with _db() as con:
+        row = con.execute(
+            f"SELECT {','.join(_MSG_COLS)} FROM aula_messages WHERE message_id=?",
+            (message_id,),
+        ).fetchone()
+    return _msg_row(row) if row else None
+
+
+def aula_set_message_status(message_id: str, status: str) -> None:
+    with _db() as con:
+        con.execute("UPDATE aula_messages SET status=? WHERE message_id=?",
+                    (status, message_id))
+
+
+def aula_received_messages(limit: int) -> list[dict]:
+    """Unclassified messages, oldest first (GMAIL_MAX_PER_POLL pr. tick)."""
+    with _db() as con:
+        rows = con.execute(
+            f"SELECT {','.join(_MSG_COLS)} FROM aula_messages "
+            "WHERE status='received' ORDER BY mail_date LIMIT ?",
+            (limit,),
+        ).fetchall()
+    return [_msg_row(r) for r in rows]
+
+
+def aula_items_for_message(message_id: str) -> list[dict]:
+    with _db() as con:
+        rows = con.execute(
+            f"SELECT {','.join(_ITEM_COLS)} FROM aula_items WHERE message_id=?",
+            (message_id,),
+        ).fetchall()
+    return [_item_row(r) for r in rows]
+
+
+def aula_insert_item(message_id: str, *, intent: str, title: str, summary: str,
+                     date: str | None, time: str | None, all_day: bool,
+                     deadline: str | None, confidence: float,
+                     ambiguity_flags: list[str], created_at: str) -> int:
+    with _db() as con:
+        cur = con.execute(
+            "INSERT INTO aula_items(message_id,intent,title,summary,date,time,"
+            "all_day,deadline,confidence,ambiguity_flags,status,created_at) "
+            "VALUES(?,?,?,?,?,?,?,?,?,?,'pending',?)",
+            (message_id, intent, title, summary, date, time, int(all_day),
+             deadline, confidence, json.dumps(ambiguity_flags), created_at),
+        )
+        return cur.lastrowid
+
+
+def aula_get_item(item_id: int) -> dict | None:
+    with _db() as con:
+        row = con.execute(
+            f"SELECT {','.join(_ITEM_COLS)} FROM aula_items WHERE id=?",
+            (item_id,),
+        ).fetchone()
+    return _item_row(row) if row else None
+
+
+def aula_update_item(item_id: int, *, status: str,
+                     gcal_event_id: str | None = None,
+                     vikunja_task_id: int | None = None,
+                     resolved_at: str | None = None) -> None:
+    with _db() as con:
+        con.execute(
+            "UPDATE aula_items SET status=?, "
+            "gcal_event_id=COALESCE(?, gcal_event_id), "
+            "vikunja_task_id=COALESCE(?, vikunja_task_id), "
+            "resolved_at=COALESCE(?, resolved_at) WHERE id=?",
+            (status, gcal_event_id, vikunja_task_id, resolved_at, item_id),
+        )
+
+
+def aula_expire_pending(cutoff_iso: str, resolved_at: str) -> int:
+    """Proposals (event/handling) unanswered past the TTL. Info items are the
+    brief queue and never expire this way."""
+    with _db() as con:
+        cur = con.execute(
+            "UPDATE aula_items SET status='expired', resolved_at=? "
+            "WHERE status='pending' AND intent IN ('event','handling') "
+            "AND created_at < ?",
+            (resolved_at, cutoff_iso),
+        )
+        return cur.rowcount
+
+
+def aula_pending_info() -> list[dict]:
+    with _db() as con:
+        rows = con.execute(
+            f"SELECT {','.join(_ITEM_COLS)} FROM aula_items "
+            "WHERE intent='info' AND status='pending' ORDER BY created_at",
+        ).fetchall()
+    return [_item_row(r) for r in rows]
+
+
+def aula_mark_briefed(item_ids: list[int], resolved_at: str) -> None:
+    with _db() as con:
+        con.executemany(
+            "UPDATE aula_items SET status='briefed', resolved_at=? WHERE id=?",
+            [(resolved_at, i) for i in item_ids],
+        )
+
+
+def aula_expired_since(since_iso: str) -> int:
+    with _db() as con:
+        row = con.execute(
+            "SELECT COUNT(*) FROM aula_items WHERE status='expired' "
+            "AND resolved_at >= ?",
+            (since_iso,),
+        ).fetchone()
+    return row[0]
+
+
+def aula_feed(since_iso: str, today_iso: str) -> dict:
+    """Dashboard block: info items + recent proposals/autos with status."""
+    with _db() as con:
+        info = con.execute(
+            "SELECT title, summary, created_at, status FROM aula_items "
+            "WHERE intent='info' AND created_at >= ? ORDER BY created_at DESC",
+            (since_iso,),
+        ).fetchall()
+        recent = con.execute(
+            "SELECT title, intent, status, date, time, created_at FROM aula_items "
+            "WHERE intent IN ('event','handling') AND created_at >= ? "
+            "ORDER BY created_at DESC",
+            (since_iso,),
+        ).fetchall()
+        new_today = con.execute(
+            "SELECT COUNT(*) FROM aula_messages WHERE received_at >= ?",
+            (today_iso,),
+        ).fetchone()[0]
+    return {
+        "info": [{"title": r[0], "summary": r[1], "created_at": r[2],
+                  "status": r[3]} for r in info],
+        "recent": [{"title": r[0], "intent": r[1], "status": r[2], "date": r[3],
+                    "time": r[4], "created_at": r[5]} for r in recent],
+        "new_today": new_today,
+    }
 
 
 # ── Review queue (dual-pass quality pass) ──────────────────────────

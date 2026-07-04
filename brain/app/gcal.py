@@ -5,23 +5,23 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
 from . import config
-
-SCOPES = ["https://www.googleapis.com/auth/calendar"]
+from .google_auth_helper import google_creds
 
 
 def _service():
-    creds = Credentials.from_authorized_user_file(config.GOOGLE_TOKEN_PATH, SCOPES)
-    return build("calendar", "v3", credentials=creds, cache_discovery=False)
+    return build("calendar", "v3", credentials=google_creds(), cache_discovery=False)
 
 
 def list_upcoming(days: int = 7) -> list[dict]:
-    svc = _service()
     now = datetime.now(ZoneInfo(config.TZ))
-    t_min, t_max = now.isoformat(), (now + timedelta(days=days)).isoformat()
+    return _list_range(now.isoformat(), (now + timedelta(days=days)).isoformat())
+
+
+def _list_range(t_min: str, t_max: str) -> list[dict]:
+    svc = _service()
     events: list[dict] = []
     cal_ids = [c["id"] for c in svc.calendarList().list().execute().get("items", [])
                if c.get("selected", True)]
@@ -42,6 +42,15 @@ def list_upcoming(days: int = 7) -> list[dict]:
             })
     events.sort(key=lambda x: x["start"])
     return events
+
+
+def list_window(day: str, days_around: int = 1) -> list[dict]:
+    """Events across selected calendars within ±days_around of an ISO date —
+    used by the Aula dedupe gate (reminder mails resent for the same event)."""
+    tz = ZoneInfo(config.TZ)
+    base = datetime.fromisoformat(day).replace(tzinfo=tz, hour=0, minute=0)
+    return _list_range((base - timedelta(days=days_around)).isoformat(),
+                       (base + timedelta(days=days_around + 1)).isoformat())
 
 
 def list_birthdays(days: int = 30) -> list[dict]:

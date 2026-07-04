@@ -1,6 +1,7 @@
 """LifeHub brain — FastAPI entrypoint."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -8,10 +9,32 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 
-from . import config, dashboard, review, store, telegram, vikunja
+from . import aula, config, dashboard, review, store, telegram, vikunja
 
 logging.basicConfig(level=logging.INFO)
+log = logging.getLogger("lifehub")
 scheduler = AsyncIOScheduler(timezone=config.TZ)
+
+# Overlap guard: a slow LLM classification (7B on CPU can take minutes per
+# mail) must not be overtaken by the next poll tick.
+_aula_lock = asyncio.Lock()
+
+
+async def poll_gmail() -> dict:
+    if not config.GMAIL_ENABLED:
+        return {"enabled": False}
+    if _aula_lock.locked():
+        log.info("gmail poll skipped — previous run still working")
+        return {"skipped": True}
+    async with _aula_lock:
+        return await aula.poll_and_process()
+
+
+async def _poll_gmail_job() -> None:
+    try:
+        await poll_gmail()
+    except Exception:
+        log.exception("gmail poll failed")
 
 
 @asynccontextmanager
@@ -23,6 +46,10 @@ async def lifespan(_: FastAPI):
     scheduler.add_job(dashboard.refresh_elpris, "interval", hours=1)
     scheduler.add_job(dashboard.refresh_finance, "interval", hours=6)
     scheduler.add_job(dashboard.morning_brief, CronTrigger(hour=6, minute=30))
+    if config.GMAIL_ENABLED:
+        scheduler.add_job(_poll_gmail_job, "interval",
+                          minutes=config.GMAIL_POLL_MINUTES, jitter=30)
+        scheduler.add_job(aula.expire_proposals, CronTrigger(hour=6, minute=0))
     scheduler.start()
     # Warm the caches once at boot.
     for job in (dashboard.refresh_weather, dashboard.refresh_elpris,
@@ -81,6 +108,20 @@ async def api_dashboard(request: Request) -> dict:
 async def api_ambient(request: Request) -> dict:
     # Shared-surface feed: never contains finance, regardless of viewer.
     return dashboard.build(_viewer_email(request), ambient=True)
+
+
+@app.post("/api/aula/poll")
+async def api_aula_poll() -> dict:
+    """Manual trigger for testing: curl -X POST .../api/aula/poll"""
+    if not config.GMAIL_ENABLED:
+        raise HTTPException(status_code=503, detail="GMAIL_ENABLED=false")
+    return await poll_gmail()
+
+
+@app.get("/api/aula/info")
+async def api_aula_info(days: int = 7) -> dict:
+    """Dashboard feed: info items + recent proposals/autos with status."""
+    return aula.feed(days=max(1, min(days, 31)))
 
 
 @app.post("/api/tasks/{task_id}/done")

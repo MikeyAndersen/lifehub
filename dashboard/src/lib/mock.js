@@ -57,6 +57,17 @@ export function mockDocument(ambient = false) {
       { id: 6, title: 'Ring til mor', done_at: at(0, 9, 15), project_id: 1 },
       { id: 7, title: 'Tøm opvaskemaskinen', done_at: at(-1, 19, 40), project_id: 1 },
     ],
+    aula: {
+      new_today: 2,
+      info: [
+        { title: 'Ugens bogstav er S', summary: 'Klassen arbejder med S i denne uge.', created_at: at(0, 8, 5), status: 'pending' },
+        { title: 'Fotografen kommer i uge 29', summary: 'Skolefoto for hele indskolingen.', created_at: at(-1, 12, 0), status: 'briefed' },
+      ],
+      recent: [
+        { title: 'Forældremøde', intent: 'event', status: 'auto_created', date: day(6), time: '17:00', created_at: at(0, 8, 5) },
+        { title: 'Medbring skiftetøj til turdag', intent: 'handling', status: 'pending', date: day(2), time: null, created_at: at(0, 8, 5) },
+      ],
+    },
     weather: { now_c: 18.2, code: 2, wind_ms: 4.1, today_max: 21.0, today_min: 12.4, rain_pct: 20 },
     elpris: {
       now_dkk_kwh: 1.42,

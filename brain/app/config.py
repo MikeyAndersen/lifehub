@@ -32,6 +32,27 @@ VIKUNJA_TOKEN = os.getenv("VIKUNJA_TOKEN", "")
 VIKUNJA_DEFAULT_PROJECT_ID = int(os.getenv("VIKUNJA_DEFAULT_PROJECT_ID", "1"))
 VIKUNJA_SHOPPING_PROJECT_ID = int(os.getenv("VIKUNJA_SHOPPING_PROJECT_ID", "1"))
 
+# ── Gmail / Aula-indlæsning (Del 3) ─────────────────────────────────
+# GMAIL_ENABLED=false slår hele pipelinen fra: intet poll-job, ingen kald.
+GMAIL_ENABLED = os.getenv("GMAIL_ENABLED", "false").lower() == "true"
+GMAIL_LABEL = os.getenv("GMAIL_LABEL", "Aula")
+GMAIL_POLL_MINUTES = int(os.getenv("GMAIL_POLL_MINUTES", "10"))
+GMAIL_MAX_PER_POLL = int(os.getenv("GMAIL_MAX_PER_POLL", "10"))
+GMAIL_LOOKBACK_DAYS = int(os.getenv("GMAIL_LOOKBACK_DAYS", "7"))
+
+AULA_MAX_BODY_CHARS = int(os.getenv("AULA_MAX_BODY_CHARS", "4000"))
+AULA_SENDER_ALLOWLIST = _list("AULA_SENDER_ALLOWLIST") or ["aula.dk"]
+AULA_MAX_ITEMS_PER_MAIL = int(os.getenv("AULA_MAX_ITEMS_PER_MAIL", "5"))
+
+# Hybrid auto-mode: deterministisk gating (aula._auto_gates) bærer sikkerheden.
+AULA_AUTO_ENABLED = os.getenv("AULA_AUTO_ENABLED", "false").lower() == "true"
+AULA_AUTO_INTENTS = set(_list("AULA_AUTO_INTENTS") or ["event"])
+AULA_AUTO_MIN_CONFIDENCE = float(os.getenv("AULA_AUTO_MIN_CONFIDENCE", "0.85"))
+AULA_AUTO_MAX_DAYS_AHEAD = int(os.getenv("AULA_AUTO_MAX_DAYS_AHEAD", "90"))
+
+AULA_PROPOSAL_TTL_HOURS = int(os.getenv("AULA_PROPOSAL_TTL_HOURS", "72"))
+AULA_URGENT_HOURS = int(os.getenv("AULA_URGENT_HOURS", "24"))
+
 ADMIN_EMAILS = {e.lower() for e in _list("ADMIN_EMAILS")}
 TZ = os.getenv("TZ", "Europe/Copenhagen")
 LATITUDE = float(os.getenv("LATITUDE", "56.15"))
