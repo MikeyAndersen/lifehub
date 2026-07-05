@@ -1,6 +1,7 @@
 """Minimal Vikunja REST client for tasks and the shopping list."""
 from __future__ import annotations
 
+import re
 from datetime import datetime, timedelta, timezone
 
 import httpx
@@ -140,3 +141,70 @@ async def done_tasks(hours: int = 48, limit: int = 40) -> list[dict]:
         out.append({"title": t["title"], "done_at": t.get("done_at"),
                     "project_id": t.get("project_id"), "id": t["id"]})
     return out
+
+
+# ── Lager-proxy til madplan (Fase 3, INTEGRATION_SPEC §2.3/§3.2) ─────
+# Indkøbsprojektet (VIKUNJA_SHOPPING_PROJECT_ID) er "lageret". To buckets:
+#   open          = åbne tasks  → "kommer ind i huset snart"
+#   recently_done = afsluttet inden for INVENTORY_DONE_DAYS → "er på lager"
+# Madplan afgør selv vægtningen (§4.2). Vikunja-finurligheder (null-resultat,
+# filter_include_nulls) håndteres her, ét sted (§A4).
+
+# Match-navn: lowercase uden mængde/enhed-hale. "Kyllingebryst 500g" → "kyllingebryst".
+_QTY_TAIL = re.compile(
+    r"\s*[-–,x×·]?\s*\d+(?:[.,]\d+)?\s*"
+    r"(?:kg|g|gram|dl|cl|ml|l|liter|stk|pk|ps|pose(?:r)?|bdt|dåse(?:r)?|x)?\.?$",
+    re.IGNORECASE,
+)
+
+
+def _norm_name(title: str) -> str:
+    s = title.strip()
+    prev = None
+    while s and s != prev:
+        prev = s
+        s = _QTY_TAIL.sub("", s).strip(" ,-–x×·")
+    return (s or title).strip().lower()
+
+
+def _inv_item(t: dict, *, bucket: str, done: bool) -> dict:
+    return {
+        "name": _norm_name(t["title"]),
+        "raw_title": t["title"],
+        "done": done,
+        "bucket": bucket,
+        "vikunja_task_id": t["id"],
+        "updated_at": t.get("done_at") if done else t.get("updated"),
+    }
+
+
+async def shopping_inventory(done_days: int | None = None, limit: int = 100) -> list[dict]:
+    """Lager som liste af InventoryItem (§2.3), begge buckets, nyeste-agtigt.
+    Kaster ved Vikunja-fejl — kalderen (endpointet) mapper til 502."""
+    done_days = config.INVENTORY_DONE_DAYS if done_days is None else done_days
+    proj = config.VIKUNJA_SHOPPING_PROJECT_ID
+    async with httpx.AsyncClient(timeout=15) as client:
+        r_open = await client.get(
+            f"{config.VIKUNJA_URL}/api/v1/tasks", headers=_HEADERS,
+            params={"filter": "done = false", "filter_include_nulls": "true",
+                    "per_page": limit})
+        r_open.raise_for_status()
+        r_done = await client.get(
+            f"{config.VIKUNJA_URL}/api/v1/tasks", headers=_HEADERS,
+            params={"filter": "done = true", "sort_by": "done_at",
+                    "order_by": "desc", "per_page": limit})
+        r_done.raise_for_status()
+    cutoff = datetime.now(timezone.utc) - timedelta(days=done_days)
+    items: list[dict] = []
+    for t in (r_open.json() or []):
+        if t.get("done") or t.get("project_id") != proj:
+            continue
+        items.append(_inv_item(t, bucket="open", done=False))
+    for t in (r_done.json() or []):
+        done_at = _parse_ts(t.get("done_at"))
+        if not t.get("done") or t.get("project_id") != proj:
+            continue
+        if done_at is None or done_at < cutoff:
+            continue
+        items.append(_inv_item(t, bucket="recently_done", done=True))
+    return items

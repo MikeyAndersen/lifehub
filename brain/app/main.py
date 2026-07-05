@@ -111,6 +111,20 @@ async def review_drain(request: Request) -> dict:
     return await review.drain()
 
 
+@app.get("/api/internal/inventory")
+async def api_internal_inventory(request: Request) -> list[dict]:
+    """Lager-proxy til madplan (§2.3/§3.2): liste af InventoryItem, begge
+    buckets. Bag INTERNAL_API_TOKEN; uden token er endpointet lukket."""
+    auth = request.headers.get("Authorization", "")
+    if (not config.INTERNAL_API_TOKEN
+            or auth != f"Bearer {config.INTERNAL_API_TOKEN}"):
+        raise HTTPException(status_code=403)
+    try:
+        return await vikunja.shopping_inventory()
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="Vikunja unavailable") from exc
+
+
 def _viewer_email(request: Request) -> str | None:
     # Cloudflare Access injects the verified identity of the logged-in user.
     return request.headers.get("Cf-Access-Authenticated-User-Email")

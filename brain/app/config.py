@@ -73,4 +73,9 @@ LIFEHUB_API_TOKEN = os.getenv("LIFEHUB_API_TOKEN", "")  # brain → madplan bear
 MADPLAN_POLL_MINUTES = int(os.getenv("MADPLAN_POLL_MINUTES", "10"))
 MADPLAN_STALE_MINUTES = int(os.getenv("MADPLAN_STALE_MINUTES", "10"))
 
+# Intern lager-proxy (Fase 3, §3.2): madplan → brain. Tomt token = lukket.
+# "På lager" = Vikunja-indkøbstasks afsluttet inden for dette vindue.
+INTERNAL_API_TOKEN = os.getenv("INTERNAL_API_TOKEN", "")
+INVENTORY_DONE_DAYS = int(os.getenv("INVENTORY_DONE_DAYS", "7"))
+
 DB_PATH = os.getenv("DB_PATH", "./lifehub.db")
