@@ -25,6 +25,10 @@ services:
     restart: unless-stopped
     volumes:
       - ./data/ollama:/root/.ollama
+    networks:
+      # Deles med nova-madplan (§6/§A7): madplan-api → http://ollama:11434 for 7b.
+      - default
+      - lifehub_net
     # Uncomment for NVIDIA GPU passthrough:
     # deploy:
     #   resources:
