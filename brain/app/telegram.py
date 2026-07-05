@@ -164,6 +164,73 @@ async def _maybe_handle_aula_edit_reply(msg: dict, text: str) -> bool:
     return True
 
 
+# ── Madplan-genveje (Fase 6) ────────────────────────────────────────
+# Deterministisk fast-path FØR LLM-parsingen, så INTENT_SCHEMA og aula/review-
+# klassificeringen er helt urørt. Kun to faste spørgsmål routes til madplan-API.
+_MADPLAN_TONIGHT = (
+    "hvad skal vi have i aften", "hvad skal vi spise i aften",
+    "hvad skal vi have at spise", "hvad skal vi have til aften",
+    "hvad får vi at spise", "hvad er der til aftensmad", "aftensmad i dag",
+)
+
+
+async def _reply_tonight(chat_id: int) -> None:
+    from .feeds import madplan
+    week = store.get_cache("madplan")
+    if week is None and madplan.enabled():
+        try:
+            week = await madplan.fetch()
+        except Exception:
+            week = None
+    if week is None:
+        await send(chat_id, "Madplanen er ikke koblet til endnu.")
+        return
+    today = datetime.now(ZoneInfo(config.TZ)).date().isoformat()
+    day = next((d for d in (week.get("days") or []) if d.get("date") == today), None)
+    if day and day.get("dish_name") and day.get("status") in ("planned", "cooked"):
+        await send(chat_id, f"🍽 Aftensmad i dag: <b>{day['dish_name']}</b>")
+    else:
+        await send(chat_id, "Der er ingen madplan for i dag.")
+
+
+async def _accept_next_week(chat_id: int) -> None:
+    from .feeds import madplan
+    if not madplan.enabled():
+        await send(chat_id, "Madplanen er ikke koblet til endnu.")
+        return
+    try:
+        data = await madplan.get_suggestions()
+    except Exception:
+        await send(chat_id, "Kunne ikke hente madplan-forslag lige nu.")
+        return
+    items = data.get("suggestions") or []
+    if not items:
+        await send(chat_id, "Der er ingen forslag klar til næste uge endnu.")
+        return
+    accepted = 0
+    for s in items:
+        try:
+            await madplan.accept(s["date"], s["dish_id"])
+            accepted += 1
+        except Exception:
+            pass
+    lines = "\n".join(f"• {s['date']}: {s['dish_name']}" for s in items)
+    await send(chat_id, f"✅ Accepterede madplanen for næste uge "
+                        f"({accepted}/{len(items)} dage):\n{lines}")
+
+
+async def _maybe_handle_madplan(chat_id: int, text: str) -> bool:
+    """True = madplan-genvej håndterede beskeden; ellers falder den videre til LLM."""
+    t = text.lower()
+    if any(p in t for p in _MADPLAN_TONIGHT):
+        await _reply_tonight(chat_id)
+        return True
+    if ("accept" in t or "godkend" in t) and "madplan" in t:
+        await _accept_next_week(chat_id)
+        return True
+    return False
+
+
 def _confirm_keyboard(pid: str) -> dict:
     return {"inline_keyboard": [[
         {"text": "✅ Opret", "callback_data": f"ok:{pid}"},
@@ -292,6 +359,11 @@ async def handle_update(update: dict) -> None:
 
     # Svar på en ✏️ Aula-redigér-prompt fanges før det almindelige flow.
     if await _maybe_handle_aula_edit_reply(msg, text):
+        return
+
+    # Madplan-genveje (Fase 6): deterministisk route FØR LLM — rører ikke
+    # intent-skemaet, så aula/review-klassificeringen er uændret.
+    if await _maybe_handle_madplan(chat_id, text):
         return
 
     parsed = await llm.parse_message(text)

@@ -13,6 +13,10 @@ def enabled() -> bool:
     return bool(config.MADPLAN_URL and config.LIFEHUB_API_TOKEN)
 
 
+def _headers() -> dict:
+    return {"Authorization": f"Bearer {config.LIFEHUB_API_TOKEN}"}
+
+
 async def fetch() -> dict:
     """GET indeværende uges plan (§2.2 WeekPlan).
 
@@ -20,8 +24,25 @@ async def fetch() -> dict:
     så den seneste cache i stedet for at overskrive den med ingenting.
     """
     url = f"{config.MADPLAN_URL.rstrip('/')}/api/weekplan/current"
-    headers = {"Authorization": f"Bearer {config.LIFEHUB_API_TOKEN}"}
     async with httpx.AsyncClient(timeout=10) as client:
-        r = await client.get(url, headers=headers)
+        r = await client.get(url, headers=_headers())
+        r.raise_for_status()
+        return r.json()
+
+
+async def get_suggestions() -> dict:
+    """GET næste uges forslags-sæt (§2.4). Bruges af Telegram-genvejen (Fase 6)."""
+    url = f"{config.MADPLAN_URL.rstrip('/')}/api/suggestions/current"
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.get(url, headers=_headers())
+        r.raise_for_status()
+        return r.json()
+
+
+async def accept(day: str, dish_id: int) -> dict:
+    """POST accept af ét forslag → skrives ind i ugeplanen (§3.1)."""
+    url = f"{config.MADPLAN_URL.rstrip('/')}/api/suggestions/accept"
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.post(url, headers=_headers(), json={"date": day, "dish_id": dish_id})
         r.raise_for_status()
         return r.json()
