@@ -31,7 +31,7 @@ export default function Opgaver({ tasks = [], doneTasks = [] }) {
   const open = tasks.filter((t) => !done[t.id]).length;
 
   return (
-    <Card label="Opgaver" meta={<span className="card-meta">{open} åbne</span>}>
+    <Card label="Opgaver" accent="tasks" meta={<span className="card-meta">{open} åbne</span>}>
       {tasks.length === 0 && <p className="muted">Alt er gjort. Imponerende.</p>}
       {tasks.slice(0, 10).map((t) => {
         const isDone = !!done[t.id];

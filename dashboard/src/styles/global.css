@@ -93,6 +93,27 @@
   /* --- Form --- */
   --lh-radius-card:   12px;
   --lh-radius-check:  6px;
+
+  /* ═══ Ambient design system (DEL 1) ══════════════════════════════
+     Minimalistisk space: afdæmpede accenter (aldrig neon), glows som
+     subtile hints, langsomme timings. RGB-tripler så opacity styres
+     ét sted via --glow-op (max 0.25). Én accent-detalje pr. card. */
+  --acc-calendar: 132 178 196;   /* støvet cyan   — kalender */
+  --acc-tasks:    150 138 188;   /* dæmpet violet — opgaver */
+  --acc-mail:     188 142 158;   /* dæmpet rosa   — post/aula */
+  --acc-weather:  199 176 138;   /* varm sand     — vejr/hero */
+  --acc-system:   134 172 150;   /* dæmpet grøn   — system/øvrige */
+
+  --glow-op:      0.20;          /* border-glow (max 0.25) */
+  --glow-op-soft: 0.10;          /* svageste hints */
+
+  --blur-card:    16px;          /* glassmorphism på cards */
+  --blur-nebula:  130px;         /* baggrunds-nebula (min 120px) */
+
+  --t-breath:     8s;            /* breathing 6–10s */
+  --t-drift:      70s;           /* drift 45–90s */
+  --t-countup:    800ms;         /* useCountUp ease-out */
+  --t-update:     1.4s;          /* blødt lysskifte ved dataopdatering */
 }
 
 /* ── Base ─────────────────────────────────────────────────────── */
@@ -158,11 +179,18 @@ body {
 
 /* Hero — dagens brief */
 .hero {
+  position: relative;
   margin-bottom: 14px;
-  background: linear-gradient(180deg, var(--lh-surface-raised) 0%, #0E1626 100%);
+  background: rgba(16, 26, 46, 0.55);
+  backdrop-filter: blur(var(--blur-card));
+  -webkit-backdrop-filter: blur(var(--blur-card));
   border: 1px solid rgba(148, 163, 190, 0.15);
   border-radius: var(--lh-radius-card);
   padding: clamp(20px, 3vw, 30px) clamp(20px, 3.4vw, 34px);
+  box-shadow:
+    inset 0 1px 0 rgba(233, 238, 247, 0.05),
+    0 14px 36px rgba(2, 6, 14, 0.35),
+    0 0 30px -8px rgb(var(--acc-weather) / var(--glow-op));
 }
 .hero-meta {
   font-family: var(--lh-font-mono);
@@ -192,13 +220,54 @@ body {
   gap: 14px;
   align-items: flex-start;
 }
+/* Glassmorphism (DEL 2): blur, lav-opacity flade, inset-highlight i toppen,
+   blød løftende skygge — og ÉN subtil border-glow i cardets accentfarve. */
 .card {
   flex: 1 1 330px;
   min-width: min(100%, 330px);
-  background: var(--lh-surface);
-  border: 1px solid var(--lh-line);
+  --card-acc: var(--acc-system);
+  position: relative;
+  background: rgba(15, 23, 40, 0.55);
+  backdrop-filter: blur(var(--blur-card));
+  -webkit-backdrop-filter: blur(var(--blur-card));
+  border: 1px solid rgba(148, 163, 190, 0.14);
   border-radius: var(--lh-radius-card);
   padding: 20px 22px;
+  box-shadow:
+    inset 0 1px 0 rgba(233, 238, 247, 0.05),
+    0 14px 36px rgba(2, 6, 14, 0.35),
+    0 0 30px -8px rgb(var(--card-acc) / var(--glow-op));
+}
+.card--calendar { --card-acc: var(--acc-calendar); }
+.card--tasks    { --card-acc: var(--acc-tasks); }
+.card--mail     { --card-acc: var(--acc-mail); }
+.card--weather  { --card-acc: var(--acc-weather); }
+.card--system   { --card-acc: var(--acc-system); }
+
+/* Dataopdatering: kortvarigt, blødt lysskifte i accentfarven (opacity-ease). */
+.card--updated::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgb(var(--card-acc) / 0.10), transparent 65%);
+  animation: card-update var(--t-update) ease-out forwards;
+}
+@keyframes card-update {
+  from { opacity: 0.9; }
+  to   { opacity: 0; }
+}
+
+/* Vigtigste card: statisk, ganske svag gradient-border — ingen rotation. */
+.card--primary {
+  border-color: transparent;
+  background:
+    linear-gradient(rgba(15, 23, 40, 0.55), rgba(15, 23, 40, 0.55)) padding-box,
+    linear-gradient(155deg,
+      rgb(var(--card-acc) / 0.32),
+      rgba(148, 163, 190, 0.10) 45%,
+      rgb(var(--card-acc) / 0.16)) border-box;
 }
 .card-head {
   display: flex;

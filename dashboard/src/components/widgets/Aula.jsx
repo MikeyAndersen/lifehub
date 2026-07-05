@@ -24,6 +24,7 @@ export default function Aula({ aula }) {
   return (
     <Card
       label="Aula"
+      accent="mail"
       meta={aula.new_today > 0 && (
         <span className="card-meta">{aula.new_today} nye i dag</span>
       )}

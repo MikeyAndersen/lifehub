@@ -23,6 +23,7 @@ export default function Post({ post }) {
   return (
     <Card
       label="Post"
+      accent="mail"
       meta={post.new_today > 0 && (
         <span className="card-meta">{post.new_today} nye i dag</span>
       )}
