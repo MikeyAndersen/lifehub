@@ -244,7 +244,61 @@ body {
   color: var(--lh-signal);
 }
 .ev-title { font-size: var(--lh-fs-body); color: var(--lh-text); min-width: 0; }
+.ev-title,
+.ev-chip-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .ev-loc { font-size: 12.5px; color: var(--lh-text-3); margin-top: 1px; }
+
+/* Overlap-kluster (DEL 4): N kolonner à 100/N% bredde, kolonneindeks = plads */
+.ev-cluster {
+  display: grid;
+  gap: 6px;
+  padding: 7px 0;
+  border-top: 1px solid var(--lh-line-soft);
+}
+.ev-chip {
+  position: relative;
+  min-width: 0;
+  min-height: 44px; /* korte events viser altid mindst én titellinje */
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 9px;
+  border: 1px solid var(--lh-line);
+  border-radius: 8px;
+  background: rgba(148, 163, 190, 0.06);
+}
+.ev-chip-time {
+  font-family: var(--lh-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--lh-signal);
+}
+.ev-chip-title { font-size: 13px; line-height: 1.3; color: var(--lh-text); }
+.ev-tip {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 6px);
+  z-index: 6;
+  width: max-content;
+  max-width: 260px;
+  padding: 7px 10px;
+  border: 1px solid var(--lh-line);
+  border-radius: 8px;
+  background: var(--lh-surface-raised);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  font-size: 12.5px;
+  color: var(--lh-text);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+.ev-chip:hover .ev-tip { opacity: 1; }
 
 /* Opgaver */
 .task-row {

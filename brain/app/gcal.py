@@ -36,6 +36,7 @@ def _list_range(t_min: str, t_max: str) -> list[dict]:
             events.append({
                 "title": e.get("summary", "(uden titel)"),
                 "start": start,
+                "end": e.get("end", {}).get("dateTime") or e.get("end", {}).get("date"),
                 "all_day": "date" in e["start"],
                 "calendar": cal_id,
                 "location": e.get("location"),

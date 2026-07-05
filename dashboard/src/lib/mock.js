@@ -54,9 +54,11 @@ export function mockDocument(ambient = false) {
       date: day(0),
     },
     events: [
-      { title: 'Svømning — Alma', start: at(0, 16), all_day: false, calendar: 'familien', location: 'Lyngby svømmehal' },
-      { title: 'Fodboldtræning — Oscar', start: at(0, 17, 30), all_day: false, calendar: 'familien', location: 'B.93, bane 4' },
-      { title: 'Tandlæge — Jonas', start: at(1, 9), all_day: false, calendar: 'familien', location: 'Tandklinikken, Torvet 3' },
+      // De to første overlapper bevidst — de driver DEL 4-kolonnelayoutet i dev.
+      { title: 'Svømning — Alma', start: at(0, 16), end: at(0, 17), all_day: false, calendar: 'familien', location: 'Lyngby svømmehal' },
+      { title: 'Håndboldstævne — Oscar (hele hallen, medbring drikkedunk)', start: at(0, 16, 30), end: at(0, 18), all_day: false, calendar: 'familien', location: 'Virum-hallen' },
+      { title: 'Fodboldtræning — Oscar', start: at(0, 17, 30), end: at(0, 18, 30), all_day: false, calendar: 'familien', location: 'B.93, bane 4' },
+      { title: 'Tandlæge — Jonas', start: at(1, 9), end: at(1, 9, 40), all_day: false, calendar: 'familien', location: 'Tandklinikken, Torvet 3' },
       { title: 'Legeaftale — Oscar hos Villads', start: at(1, 15), all_day: false, calendar: 'familien', location: 'Sorgenfri' },
       { title: 'Cykeltur til Dyrehaven', start: at(2, 10), all_day: false, calendar: 'familien', location: 'Alle' },
       { title: 'Fødselsdag hos farmor', start: at(3, 12), all_day: false, calendar: 'familien', location: 'Holte' },
