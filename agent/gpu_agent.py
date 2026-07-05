@@ -64,7 +64,22 @@ def _cfg() -> dict:
         "timebox_min": float(os.environ.get("TIMEBOX_MINUTES", "10")),
         "model": os.environ.get("OLLAMA_MODEL", ""),
         "ollama_url": os.environ.get("OLLAMA_URL", "http://localhost:11434").rstrip("/"),
+        # Additivt (spec §5): madplan-drain drænes efter review, kun hvis sat.
+        "madplan_url": os.environ.get("MADPLAN_DRAIN_URL", "").rstrip("/"),
+        "madplan_token": os.environ.get("MADPLAN_DRAIN_TOKEN", ""),
     }
+
+
+def _targets(cfg: dict) -> list[tuple[str, str, str]]:
+    """Drain-mål i rækkefølge: (navn, url, token). Review er med når den er
+    konfigureret (uændret adfærd); madplan tilføjes KUN når MADPLAN_DRAIN_*
+    er sat — uden dem er kørslen præcis som før."""
+    targets: list[tuple[str, str, str]] = []
+    if cfg["server_url"] and cfg["token"]:
+        targets.append(("review", f"{cfg['server_url']}/api/review/drain", cfg["token"]))
+    if cfg["madplan_url"] and cfg["madplan_token"]:
+        targets.append(("madplan", f"{cfg['madplan_url']}/api/drain", cfg["madplan_token"]))
+    return targets
 
 
 # ── GPU measurement (isolated on purpose: swap this on a hardware change) ──
@@ -177,28 +192,27 @@ def unload_model(cfg: dict) -> None:
 # ── Drain loop ─────────────────────────────────────────────────────
 
 
-def drain_once(cfg: dict) -> dict | None:
+def drain_once(url: str, token: str, name: str = "drain") -> dict | None:
     try:
-        return _http_json(f"{cfg['server_url']}/api/review/drain",
-                          payload={},
-                          headers={"Authorization": f"Bearer {cfg['token']}"},
+        return _http_json(url, payload={},
+                          headers={"Authorization": f"Bearer {token}"},
                           timeout=DRAIN_TIMEOUT_S)
     except urllib.error.HTTPError as exc:
-        log.error("Server answered %s — check REVIEW_DRAIN_TOKEN / URL", exc.code)
+        log.error("%s: server answered %s — check token / URL", name, exc.code)
         return None
     except OSError as exc:
-        log.error("Could not reach server: %s", exc)
+        log.error("%s: could not reach server: %s", name, exc)
         return None
 
 
-def drain_until_empty(cfg: dict, deadline: float) -> None:
+def drain_target(name: str, url: str, token: str, deadline: float) -> None:
     total_processed = total_corrected = errors = 0
     while time.monotonic() < deadline:
-        result = drain_once(cfg)
+        result = drain_once(url, token, name)
         if result is None:
             errors += 1
             if errors >= MAX_CONSECUTIVE_ERRORS:
-                log.error("Giving up after %d consecutive errors", errors)
+                log.error("%s: giving up after %d consecutive errors", name, errors)
                 break
             time.sleep(10)
             continue
@@ -206,21 +220,31 @@ def drain_until_empty(cfg: dict, deadline: float) -> None:
         if result.get("online") is False:
             # Server can't reach THIS PC's Ollama: usually OLLAMA_HOST not
             # 0.0.0.0, a firewall rule, or Ollama still warming up.
-            log.warning("Server reports the strong Ollama unreachable — retrying; "
-                        "check OLLAMA_HOST=0.0.0.0 and the firewall if it persists")
+            log.warning("%s: server reports the strong Ollama unreachable — retrying; "
+                        "check OLLAMA_HOST=0.0.0.0 and the firewall if it persists", name)
             time.sleep(20)
             continue
         total_processed += result.get("processed", 0)
         total_corrected += result.get("corrected", 0)
         if result.get("processed", 0) == 0:
-            log.info("Queue empty — done (processed %d, corrected %d this run)",
-                     total_processed, total_corrected)
+            log.info("%s: queue empty — done (processed %d, corrected %d this run)",
+                     name, total_processed, total_corrected)
             return
-        log.info("Batch done: %s (running total %d/%d)",
-                 result, total_processed, total_corrected)
+        log.info("%s: batch done: %s (running total %d/%d)",
+                 name, result, total_processed, total_corrected)
     else:
-        log.info("Timebox reached — exiting (processed %d, corrected %d); "
-                 "the rest is caught next boot", total_processed, total_corrected)
+        log.info("%s: timebox reached — exiting (processed %d, corrected %d); "
+                 "the rest is caught next boot", name, total_processed, total_corrected)
+
+
+def drain_until_empty(targets: list[tuple[str, str, str]], deadline: float) -> None:
+    """Dræn hvert mål sekventielt inden for den fælles timebox (spec §5)."""
+    for name, url, token in targets:
+        if time.monotonic() >= deadline:
+            log.info("Timebox reached before %s — skipping the rest", name)
+            break
+        log.info("Draining target: %s", name)
+        drain_target(name, url, token, deadline)
 
 
 def main() -> int:
@@ -243,9 +267,10 @@ def main() -> int:
 
     _load_env()
     cfg = _cfg()
-    if not cfg["server_url"] or not cfg["token"]:
-        log.error("LIFEHUB_SERVER_URL and REVIEW_DRAIN_TOKEN must be set "
-                  "(agent/.env — see .env.example)")
+    targets = _targets(cfg)
+    if not targets:
+        log.error("No drain targets. Set LIFEHUB_SERVER_URL+REVIEW_DRAIN_TOKEN (review) "
+                  "and/or MADPLAN_DRAIN_URL+MADPLAN_DRAIN_TOKEN (madplan) in agent/.env")
         return 2
 
     if not args.now:
@@ -255,10 +280,11 @@ def main() -> int:
 
     try:
         if args.once:
-            log.info("Single drain round: %s", drain_once(cfg))
+            for name, url, token in targets:
+                log.info("Single drain round [%s]: %s", name, drain_once(url, token, name))
         else:
             minutes = args.minutes if args.minutes is not None else cfg["timebox_min"]
-            drain_until_empty(cfg, time.monotonic() + minutes * 60)
+            drain_until_empty(targets, time.monotonic() + minutes * 60)
     finally:
         unload_model(cfg)
     return 0
