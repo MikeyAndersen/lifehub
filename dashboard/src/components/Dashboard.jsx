@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { fetchDashboard } from '../lib/api.js';
 import { fmtClock } from '../lib/format.js';
+import { startDaycycle } from '../lib/daycycle.js';
 import Backdrop from './Backdrop.jsx';
+import Planet from './Planet.jsx';
 import Hero from './widgets/Hero.jsx';
 import Kalender from './widgets/Kalender.jsx';
 import Opgaver from './widgets/Opgaver.jsx';
@@ -29,7 +31,8 @@ export default function Dashboard() {
     load();
     const dataId = setInterval(load, 120_000);
     const clockId = setInterval(() => setNow(new Date()), 15_000);
-    return () => { clearInterval(dataId); clearInterval(clockId); };
+    const stopDaycycle = startDaycycle();
+    return () => { clearInterval(dataId); clearInterval(clockId); stopDaycycle(); };
   }, []);
 
   if (error && !data) {
@@ -51,6 +54,7 @@ export default function Dashboard() {
         </div>
       </header>
 
+      <Planet weather={data.weather} now={now} />
       <Hero brief={data.brief} weather={data.weather} elpris={data.elpris} now={now} />
 
       <div className="cards">
