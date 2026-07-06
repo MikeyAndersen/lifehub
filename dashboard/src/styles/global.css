@@ -846,6 +846,175 @@ body {
   white-space: nowrap;
 }
 
+/* ── /ambient/orbit (DEL 5): roligt mission control, 1920×1080 ─────
+   Samme ro-principper: glød er dæmpet, paneler næsten usynlige,
+   tallene og den tynde typografi bærer designet. Ingen scrollbars. */
+.orbit-viewport {
+  position: fixed;
+  inset: 0;
+  background: rgb(var(--tod-bg));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.orbit-viewport.no-cursor { cursor: none; }
+.orbit-stage { position: relative; flex: none; width: 1920px; height: 1080px; }
+.orbit-canvas { position: absolute; inset: 0; pointer-events: none; }
+
+.orbit-ring {
+  position: absolute;
+  left: 960px; top: 500px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px solid rgba(148, 163, 190, 0.09);
+}
+
+/* Orben — blød dæmpet glød, ikke en lysende sol. Breathing 8s. */
+.orb {
+  position: absolute;
+  left: 960px; top: 500px;
+  width: 216px; height: 216px;
+  transform: translate(-50%, -50%);
+}
+.orb-core {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 38% 34%, rgb(var(--tod-tint) / 0.42), transparent 58%),
+    radial-gradient(circle at 50% 50%, rgb(var(--tod-tint) / 0.22) 0%, #101A2E 56%, #070D19 100%);
+  animation: orb-breathe var(--t-breath) ease-in-out infinite alternate;
+}
+.orb-halo {
+  position: absolute;
+  inset: -80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(var(--tod-tint) / 0.15), transparent 68%);
+  filter: blur(34px);
+  animation: orb-breathe var(--t-breath) ease-in-out infinite alternate;
+}
+@keyframes orb-breathe {
+  from { opacity: 0.82; transform: scale(0.985); }
+  to   { opacity: 1;    transform: scale(1.015); }
+}
+/* Event absorberet: blødt, kort lysskifte — opacity-ease, IKKE et flash. */
+.orb-flash {
+  position: absolute;
+  inset: -20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(var(--tod-tint) / 0.26), transparent 64%);
+  animation: orb-flash 1.5s ease-out forwards;
+}
+@keyframes orb-flash {
+  from { opacity: 0.75; }
+  to   { opacity: 0; }
+}
+
+.orbit-gauge {
+  position: absolute;
+  left: 960px; top: 500px;
+  transform: translate(-50%, -50%);
+  overflow: visible;
+}
+.orbit-gauge-text {
+  fill: var(--lh-text-3);
+  font-family: var(--lh-font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
+.orbit-moon {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #B9C6DC, #5E6E8C 72%);
+  opacity: 0.8;
+}
+.orbit-moon-label {
+  position: absolute;
+  transform: translateX(-50%);
+  font-family: var(--lh-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--lh-text-3);
+  white-space: nowrap;
+}
+
+/* Næsten usynlige glas-paneler — panel-effekter bærer IKKE designet. */
+.orbit-panel {
+  position: absolute;
+  width: 280px;
+  padding: 18px 22px;
+  border-radius: var(--lh-radius-card);
+  background: rgba(15, 23, 40, 0.30);
+  border: 1px solid rgba(148, 163, 190, 0.07);
+  backdrop-filter: blur(var(--blur-card));
+  -webkit-backdrop-filter: blur(var(--blur-card));
+}
+.orbit-panel h3 {
+  margin: 0 0 10px;
+  font-family: var(--lh-font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lh-text-3);
+}
+.orbit-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 0;
+}
+.orbit-stat-label { font-size: 15px; font-weight: 300; color: var(--lh-text-2); }
+.orbit-stat-value {
+  font-family: var(--lh-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 23px;
+  font-weight: 300;
+  color: rgb(var(--panel-acc, 176 198 220) / 0.95); /* diskret accent */
+}
+.orbit-stat-unit { font-size: 13px; color: var(--lh-text-3); }
+.orbit-collecting { font-size: 13px; color: var(--lh-text-4); }
+.orbit-highlight { display: flex; flex-direction: column; gap: 1px; padding: 6px 0; }
+.orbit-highlight-value { font-size: 16px; font-weight: 300; color: var(--lh-text); }
+
+.orbit-event-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-family: var(--lh-font-mono);
+  font-size: 13.5px;
+  letter-spacing: 0.04em;
+  color: var(--lh-text-2);
+  white-space: nowrap;
+  animation: orbit-label-fade 3.4s ease-out forwards;
+}
+@keyframes orbit-label-fade {
+  0%   { opacity: 0; }
+  12%  { opacity: 0.85; }
+  62%  { opacity: 0.85; }
+  100% { opacity: 0; }
+}
+
+.orbit-bottom {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 44px;
+  text-align: center;
+}
+.orbit-clock {
+  font-family: var(--lh-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 92px;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  color: var(--lh-text);
+}
+.orbit-date { margin-top: 8px; font-size: 18px; font-weight: 300; color: var(--lh-text-2); }
+.orbit-next { margin-top: 4px; font-size: 16px; font-weight: 300; color: var(--lh-text-3); }
+
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }

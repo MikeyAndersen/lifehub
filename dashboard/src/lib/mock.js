@@ -43,6 +43,44 @@ function inMin(min) {
   return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}T${p2(d.getHours())}:${p2(d.getMinutes())}:00`;
 }
 
+/* Mock til /ambient/orbit (DEL 5) — formen matcher brain/app/ambient_stats.py. */
+export function mockAmbientStats() {
+  return {
+    generated_at: new Date().toISOString(),
+    collecting_since: at(-14, 8),
+    prompts: { today: 7, total: 312 },
+    reviews: { pass1_total: 384, pass2_total: 351, pending: 3, corrected: 24, checked: 330, correction_rate: 0.0727 },
+    models: {
+      cpu_7b: { name: 'qwen2.5:7b-instruct', runs: 384 },
+      gpu_32b: { name: 'qwen2.5:32b-instruct', runs: 351 },
+    },
+    triage: { today: 5 },
+    vikunja: { writes_today: 9 },
+    highlights: [
+      { label: 'Travleste time i dag', value: 'kl. 08–09', detail: '14 hændelser' },
+      { label: 'Seneste hændelse', value: 'prompt', detail: '12:41' },
+      { label: 'Mails behandlet i dag', value: '5', detail: null },
+    ],
+  };
+}
+
+const MOCK_EVENT_KINDS = [
+  ['prompt', 'text'], ['pass2', 'done'], ['triage', 'inbox'],
+  ['vikunja_write', 'create'], ['triage', 'aula'], ['pass2', 'corrected'],
+];
+let mockEventId = 40;
+
+export function mockAmbientEvents(afterId) {
+  // Første kald sætter kun cursoren; derefter ~hvert andet poll én ny hændelse.
+  const events = [];
+  if (afterId != null && Math.random() < 0.45) {
+    const [kind, label] = MOCK_EVENT_KINDS[Math.floor(Math.random() * MOCK_EVENT_KINDS.length)];
+    mockEventId += 1;
+    events.push({ id: mockEventId, ts: new Date().toISOString(), kind, label });
+  }
+  return { events, last_id: mockEventId };
+}
+
 export function mockDocument(ambient = false) {
   const doc = {
     generated_at: new Date().toISOString(),
