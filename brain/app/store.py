@@ -4,8 +4,14 @@ import sqlite3
 import time
 import uuid
 from contextlib import contextmanager
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from . import config
+
+
+def datetime_now_iso() -> str:
+    return datetime.now(ZoneInfo(config.TZ)).isoformat(timespec="seconds")
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS cache   (key TEXT PRIMARY KEY, payload TEXT, updated_at REAL);
@@ -23,6 +29,14 @@ CREATE TABLE IF NOT EXISTS review_queue(
     status TEXT DEFAULT 'pending'
 );
 CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT);
+CREATE TABLE IF NOT EXISTS sys_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    label TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_sys_events_ts ON sys_events(ts);
+CREATE INDEX IF NOT EXISTS idx_sys_events_kind ON sys_events(kind, ts);
 CREATE TABLE IF NOT EXISTS aula_messages (
     message_id TEXT PRIMARY KEY,
     thread_id TEXT, from_addr TEXT, subject TEXT,
@@ -73,6 +87,12 @@ def init() -> None:
                 con.execute(stmt)
             except sqlite3.OperationalError:
                 pass  # kolonnen findes allerede
+        # Ambient-stats (DEL 5): markér hvornår sys_events-loggen begyndte at
+        # samle ind — tællere før dette tidspunkt findes ikke og opfindes aldrig.
+        con.execute(
+            "INSERT OR IGNORE INTO kv(key,value) VALUES('stats_since',?)",
+            (datetime_now_iso(),),
+        )
 
 
 def set_cache(key: str, payload) -> None:
@@ -158,6 +178,78 @@ def recent_expenses(limit: int = 10) -> list[dict]:
             (limit,),
         ).fetchall()
     return [{"title": r[0], "amount_dkk": r[1], "noted_at": r[2]} for r in rows]
+
+
+# ── Ambient-stats: letvægts system-event-log (DEL 5) ───────────────
+# Én række pr. hændelse (prompt, pass2-review, triage, vikunja-write …).
+# Labels er bevidst generiske — /api/ambient er en delt flade, så der
+# logges aldrig beskedtekst, mailemner eller andre private payloads.
+
+
+def log_event(kind: str, label: str | None = None) -> None:
+    """Fire-and-forget: statistik må ALDRIG vælte den handling der logges."""
+    try:
+        with _db() as con:
+            con.execute("INSERT INTO sys_events(ts,kind,label) VALUES(?,?,?)",
+                        (datetime_now_iso(), kind, label))
+    except sqlite3.Error:
+        pass
+
+
+def count_events(kind: str | None = None, label: str | None = None,
+                 since_iso: str | None = None) -> int:
+    where, params = [], []
+    if kind is not None:
+        where.append("kind=?"); params.append(kind)
+    if label is not None:
+        where.append("label=?"); params.append(label)
+    if since_iso is not None:
+        where.append("ts>=?"); params.append(since_iso)
+    sql = "SELECT COUNT(*) FROM sys_events"
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    with _db() as con:
+        return con.execute(sql, params).fetchone()[0]
+
+
+def recent_events(limit: int = 30, after_id: int | None = None) -> list[dict]:
+    """Nyeste events (id stigende). after_id → kun events nyere end den."""
+    with _db() as con:
+        if after_id is not None:
+            rows = con.execute(
+                "SELECT id, ts, kind, label FROM sys_events WHERE id>? "
+                "ORDER BY id DESC LIMIT ?", (after_id, limit)).fetchall()
+        else:
+            rows = con.execute(
+                "SELECT id, ts, kind, label FROM sys_events "
+                "ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+    return [{"id": r[0], "ts": r[1], "kind": r[2], "label": r[3]}
+            for r in reversed(rows)]
+
+
+def event_hour_histogram(since_iso: str) -> list[tuple[str, int]]:
+    """(time-streng "HH", antal) siden since_iso — til 'travleste time'."""
+    with _db() as con:
+        rows = con.execute(
+            "SELECT substr(ts,12,2) AS h, COUNT(*) FROM sys_events "
+            "WHERE ts>=? GROUP BY h ORDER BY COUNT(*) DESC", (since_iso,)).fetchall()
+    return [(r[0], r[1]) for r in rows]
+
+
+def review_status_counts() -> dict:
+    """Antal review_queue-rækker pr. status — pass1 = alle, pass2 = ikke-pending."""
+    with _db() as con:
+        rows = con.execute(
+            "SELECT status, COUNT(*) FROM review_queue GROUP BY status").fetchall()
+    return {r[0]: r[1] for r in rows}
+
+
+def message_count(stream: str, since_iso: str) -> int:
+    with _db() as con:
+        row = con.execute(
+            "SELECT COUNT(*) FROM aula_messages WHERE stream=? AND received_at>=?",
+            (stream, since_iso)).fetchone()
+    return row[0]
 
 
 # ── Key/value (gmail history cursor, aula edit-reply mapping) ──────

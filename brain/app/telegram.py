@@ -357,6 +357,9 @@ async def handle_update(update: dict) -> None:
                             "om til kalenderaftaler, opgaver eller indkøb.")
         return
 
+    # Ambient-stats (DEL 5): tæl prompten — aldrig indholdet (delt flade).
+    store.log_event("prompt", "voice" if voice else "text")
+
     # Svar på en ✏️ Aula-redigér-prompt fanges før det almindelige flow.
     if await _maybe_handle_aula_edit_reply(msg, text):
         return

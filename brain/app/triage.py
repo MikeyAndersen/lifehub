@@ -94,10 +94,12 @@ async def process_mail(raw: gmail.RawMail) -> None:
         log.info("triage %s: low/no-action (%s) — dropped", raw.message_id,
                  verdict.sender_kind)
         store.aula_set_message_status(raw.message_id, "classified")
+        store.log_event("triage", "inbox")  # også droppede mails ER triageret
         return
 
     await _route(raw, verdict)
     store.aula_set_message_status(raw.message_id, "classified")
+    store.log_event("triage", "inbox")  # ambient-stats (DEL 5) — aldrig indhold
 
 
 def _is_urgent(verdict: TriageItem, now: datetime) -> bool:

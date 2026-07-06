@@ -278,7 +278,10 @@ async def _process(item: dict, now: datetime) -> str | tuple[str, str]:
                              strong.get("amount_dkk") or 0)
         desc = _diff_desc(old_fp, new_fp)
 
-    store.mark_review(rid, "done")  # only after the update succeeded
+    # 'corrected' (ikke 'done') så korrektionsraten kan udledes af ægte data
+    # fremadrettet; list_pending_reviews ser kun på 'pending', så adfærden
+    # er uændret. Markeres først efter at opdateringen lykkedes.
+    store.mark_review(rid, "corrected")
     return "corrected", f"»{label}«: {desc}"
 
 
@@ -301,6 +304,9 @@ async def drain() -> dict:
             log.exception("review of %s failed", item["id"])
             continue
         processed += 1
+        # Ambient-stats (DEL 5): ét event pr. pass2-behandling — grundlaget
+        # for korrektionsraten ('corrected' vs 'done'; 'expired' = ikke tjekket).
+        store.log_event("pass2", outcome if isinstance(outcome, str) else "corrected")
         if isinstance(outcome, tuple):
             corrected += 1
             notes.setdefault(item["chat_id"], []).append(outcome[1])

@@ -9,7 +9,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 
-from . import aula, config, dashboard, review, store, telegram, triage, vikunja
+from . import ambient_stats, aula, config, dashboard, review, store, telegram, triage, vikunja
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("lifehub")
@@ -145,6 +145,20 @@ async def api_ambient(request: Request) -> dict:
     doc = dashboard.build(_viewer_email(request), ambient=True)
     asyncio.create_task(dashboard.ensure_fresh_madplan())
     return doc
+
+
+@app.get("/api/ambient/stats")
+async def api_ambient_stats() -> dict:
+    """Orbit-skærmens systemstats (DEL 5). Aggregeringen er cachet 45 s i
+    ambient_stats; tal uden datagrundlag er null — aldrig opfundne."""
+    return ambient_stats.build()
+
+
+@app.get("/api/ambient/events")
+async def api_ambient_events(after_id: int | None = None, limit: int = 30) -> dict:
+    """Event-puls til orbit-skærmen: seneste sys_events (polling med
+    after_id-cursor). Kun kind/label — aldrig privat indhold."""
+    return ambient_stats.events(after_id=after_id, limit=limit)
 
 
 @app.post("/api/aula/poll")

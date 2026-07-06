@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 import httpx
 
-from . import config
+from . import config, store
 
 _HEADERS = {"Authorization": f"Bearer {config.VIKUNJA_TOKEN}"}
 
@@ -21,6 +21,7 @@ async def create_task(title: str, due: str | None = None,
         r = await client.put(f"{config.VIKUNJA_URL}/api/v1/projects/{project_id}/tasks",
                              json=body, headers=_HEADERS)
         r.raise_for_status()
+        store.log_event("vikunja_write", "create")  # ambient-stats (DEL 5)
         return r.json()
 
 
@@ -60,6 +61,7 @@ async def update_task(ref: dict, *, title: str | None = None, due: str | None = 
         r = await client.post(f"{config.VIKUNJA_URL}/api/v1/tasks/{ref['task_id']}",
                               json=task, headers=_HEADERS)
         r.raise_for_status()
+        store.log_event("vikunja_write", "update")  # ambient-stats (DEL 5)
         return r.json()
 
 
@@ -69,6 +71,7 @@ async def delete_task(ref: dict) -> None:
                                 headers=_HEADERS)
         if r.status_code != 404:  # already gone is fine — deletion is idempotent
             r.raise_for_status()
+            store.log_event("vikunja_write", "delete")  # ambient-stats (DEL 5)
 
 
 async def set_task_done(task_id: int, done: bool = True) -> dict | None:
@@ -83,6 +86,7 @@ async def set_task_done(task_id: int, done: bool = True) -> dict | None:
         r = await client.post(f"{config.VIKUNJA_URL}/api/v1/tasks/{task_id}",
                               json=task, headers=_HEADERS)
         r.raise_for_status()
+        store.log_event("vikunja_write", "done" if done else "undone")
         return r.json()
 
 

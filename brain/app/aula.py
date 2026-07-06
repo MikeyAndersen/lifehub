@@ -100,6 +100,7 @@ async def process_mail(raw: gmail.RawMail, verified: bool) -> None:
     for item in items:
         await _route_item(raw.message_id, item, verified, now)
     store.aula_set_message_status(raw.message_id, "classified")
+    store.log_event("triage", "aula")  # ambient-stats (DEL 5) — aldrig indhold
 
 
 # ── Routing & gating ────────────────────────────────────────────────
