@@ -11,7 +11,7 @@ export default function Afgange({ transit, now }) {
   );
   const upcoming = (transit.departures || []).filter((iso) => new Date(iso) >= now);
   return (
-    <Card label="Afgange" meta={meta}>
+    <Card label="Afgange" pulseKey={JSON.stringify(transit.departures)} meta={meta}>
       {(transit.status === 'not_configured' || upcoming.length === 0) && (
         <p className="muted">Afgangsdata er ikke koblet til endnu.</p>
       )}

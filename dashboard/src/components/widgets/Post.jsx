@@ -1,5 +1,6 @@
 import Card from './Card.jsx';
 import { fmtDay, fmtDue } from '../../lib/format.js';
+import useCountUp from '../../lib/useCountUp.js';
 
 /* Post — generel post-triage (Del 4). Admin-only: serveren udelader blokken
    for alle andre, så `!post` er det normale tilfælde. Al tekst er
@@ -15,6 +16,7 @@ const STATUS_LABEL = {
 };
 
 export default function Post({ post }) {
+  const newToday = useCountUp(post?.new_today ?? 0);
   if (!post) return null;
   const info = post.info || [];
   const actions = (post.recent || []).slice(0, 6);
@@ -24,8 +26,9 @@ export default function Post({ post }) {
     <Card
       label="Post"
       accent="mail"
+      pulseKey={JSON.stringify(post)}
       meta={post.new_today > 0 && (
-        <span className="card-meta">{post.new_today} nye i dag</span>
+        <span className="card-meta">{newToday} nye i dag</span>
       )}
     >
       {actions.map((a, i) => (

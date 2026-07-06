@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Card from './Card.jsx';
 import { setTaskDone } from '../../lib/api.js';
 import { fmtDue, fmtDoneAt, isOverdue } from '../../lib/format.js';
+import useCountUp from '../../lib/useCountUp.js';
 
 /* Opgaver — afkrydsning skriver tilbage til Vikunja via brain.
    Optimistisk update; rulles tilbage hvis kaldet fejler.
@@ -28,10 +29,15 @@ export default function Opgaver({ tasks = [], doneTasks = [] }) {
     }
   };
 
-  const open = tasks.filter((t) => !done[t.id]).length;
+  const open = useCountUp(tasks.filter((t) => !done[t.id]).length);
 
   return (
-    <Card label="Opgaver" accent="tasks" meta={<span className="card-meta">{open} åbne</span>}>
+    <Card
+      label="Opgaver"
+      accent="tasks"
+      pulseKey={JSON.stringify([tasks, doneTasks])}
+      meta={<span className="card-meta">{open} åbne</span>}
+    >
       {tasks.length === 0 && <p className="muted">Alt er gjort. Imponerende.</p>}
       {tasks.slice(0, 10).map((t) => {
         const isDone = !!done[t.id];

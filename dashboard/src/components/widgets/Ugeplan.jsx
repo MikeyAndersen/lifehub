@@ -15,7 +15,7 @@ export default function Ugeplan({ madplan }) {
   const tk = todayKey();
   const meta = madplan.stale ? <span className="card-meta">gemt kopi</span> : null;
   return (
-    <Card label="Ugeplan" meta={meta}>
+    <Card label="Ugeplan" pulseKey={JSON.stringify(madplan.days)} meta={meta}>
       <div className="wp-list">
         {madplan.days.map((d) => {
           const today = d.date === tk;

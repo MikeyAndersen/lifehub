@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchDashboard } from '../lib/api.js';
 import { fmtClock } from '../lib/format.js';
+import Backdrop from './Backdrop.jsx';
 import Hero from './widgets/Hero.jsx';
 import Kalender from './widgets/Kalender.jsx';
 import Opgaver from './widgets/Opgaver.jsx';
@@ -38,6 +39,7 @@ export default function Dashboard() {
 
   return (
     <>
+      <Backdrop />
       <header className="topbar">
         <div className="topbar-brand">
           <h1>LifeHub</h1>

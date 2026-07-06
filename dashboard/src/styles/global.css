@@ -135,6 +135,45 @@ body {
 .muted { color: var(--lh-text-3); font-size: var(--lh-fs-body-s); }
 .err { color: var(--lh-text-2); padding: 24px; text-align: center; }
 
+/* ── Backdrop (DEL 2): tre z-lag — nebula bagerst, partikler i midten,
+   cards i forgrunden. Nebula skal næsten ikke bemærkes (opacity ≤0.12). */
+.backdrop {
+  position: fixed;
+  inset: -8%;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.nebula {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(var(--blur-nebula));
+  opacity: 0.12;
+  will-change: transform;
+}
+.nebula-1 {
+  width: 58vw; height: 58vw; left: -14%; top: -20%;
+  background: radial-gradient(circle at 42% 42%, rgb(var(--acc-calendar) / 0.75), transparent 70%);
+  animation: nebula-drift-1 82s ease-in-out infinite alternate;
+}
+.nebula-2 {
+  width: 50vw; height: 50vw; right: -16%; top: 20%;
+  opacity: 0.10;
+  background: radial-gradient(circle at 55% 45%, rgb(var(--acc-tasks) / 0.70), transparent 70%);
+  animation: nebula-drift-2 90s ease-in-out infinite alternate;
+}
+.nebula-3 {
+  width: 44vw; height: 44vw; left: 16%; bottom: -24%;
+  opacity: 0.10;
+  background: radial-gradient(circle at 50% 50%, rgb(var(--acc-weather) / 0.55), transparent 70%);
+  animation: nebula-drift-3 66s ease-in-out infinite alternate;
+}
+/* Parallax: forskellige retninger/afstande pr. lag, alle meget langsomme. */
+@keyframes nebula-drift-1 { to { transform: translate(4vw, 3vh); } }
+@keyframes nebula-drift-2 { to { transform: translate(-3vw, 4vh); } }
+@keyframes nebula-drift-3 { to { transform: translate(3vw, -2vh); } }
+.backdrop-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
 /* ── Interaktiv visning ───────────────────────────────────────── */
 .wrap {
   max-width: 1240px;

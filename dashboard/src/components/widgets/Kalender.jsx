@@ -63,7 +63,7 @@ function tooltip(e) {
 export default function Kalender({ events = [] }) {
   const groups = groupByDay(events.slice(0, 12));
   return (
-    <Card label="Kalender" accent="calendar" primary>
+    <Card label="Kalender" accent="calendar" primary pulseKey={JSON.stringify(events)}>
       {groups.length === 0 && <p className="muted">Ingen aftaler — nyd friheden.</p>}
       <div className="day-groups">
         {groups.map((g) => {

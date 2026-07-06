@@ -4,7 +4,12 @@ import { fmtBdDate } from '../../lib/format.js';
 /* Fødselsdage — næste 30 dage. */
 export default function Foedselsdage({ birthdays = [] }) {
   return (
-    <Card label="Fødselsdage" accent="calendar" meta={<span className="card-meta">næste 30 dage</span>}>
+    <Card
+      label="Fødselsdage"
+      accent="calendar"
+      pulseKey={JSON.stringify(birthdays)}
+      meta={<span className="card-meta">næste 30 dage</span>}
+    >
       {birthdays.length === 0 && <p className="muted">Ingen fødselsdage lige nu.</p>}
       {birthdays.map((b, i) => (
         <div className="bd-row" key={i}>

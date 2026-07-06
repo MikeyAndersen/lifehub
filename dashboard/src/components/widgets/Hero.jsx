@@ -1,10 +1,13 @@
 import { fmtDateLine, fmtDkk, weatherLabel, elprisLevel } from '../../lib/format.js';
+import useCountUp from '../../lib/useCountUp.js';
 
 const SEP = ' · ';
 
 /* Dagens brief — hero-kortet øverst. */
 export default function Hero({ brief, weather, elpris, now }) {
   const level = elprisLevel(elpris);
+  const temp = useCountUp(weather ? Math.round(weather.now_c) : null);
+  const pris = useCountUp(elpris?.now_dkk_kwh ?? null, { decimals: 2 });
   return (
     <div className="hero">
       <div className="hero-meta">
@@ -12,13 +15,13 @@ export default function Hero({ brief, weather, elpris, now }) {
         {weather && (
           <>
             <span className="sep">{SEP}</span>
-            <span className="val">{Math.round(weather.now_c)}° {weatherLabel(weather.code)}</span>
+            <span className="val">{temp}° {weatherLabel(weather.code)}</span>
           </>
         )}
         {elpris?.now_dkk_kwh != null && (
           <>
             <span className="sep">{SEP}</span>
-            <span className="val">elpris {fmtDkk(elpris.now_dkk_kwh)} kr/kWh{level ? ` · ${level}` : ''}</span>
+            <span className="val">elpris {fmtDkk(pris)} kr/kWh{level ? ` · ${level}` : ''}</span>
           </>
         )}
       </div>

@@ -1,5 +1,10 @@
 import Card from './Card.jsx';
 import { fmtKr, fmtBdDate } from '../../lib/format.js';
+import useCountUp from '../../lib/useCountUp.js';
+
+function Amount({ value }) {
+  return <span className="amount">{fmtKr(useCountUp(value))}</span>;
+}
 
 /* Økonomi — kun i det interaktive dokument, og kun for admin-brugere.
    Blokken mangler helt for andre; kortet skjules så uden layout-hul
@@ -9,6 +14,7 @@ export default function Oekonomi({ finance, onHide }) {
     <Card
       label="Økonomi"
       chip="privat"
+      pulseKey={JSON.stringify(finance)}
       meta={<button className="linkish" style={{ fontSize: 12 }} onClick={onHide}>Skjul</button>}
     >
       {finance.status === 'not_configured' && (
@@ -17,7 +23,7 @@ export default function Oekonomi({ finance, onHide }) {
       {(finance.accounts || []).map((a, i) => (
         <div className="acct-row" key={i}>
           <span className="acct-name">{a.name}</span>
-          <span className="amount">{fmtKr(a.balance_dkk)}</span>
+          <Amount value={a.balance_dkk} />
         </div>
       ))}
       {finance.recent_expenses?.length > 0 && (

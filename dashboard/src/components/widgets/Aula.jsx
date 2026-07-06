@@ -1,5 +1,6 @@
 import Card from './Card.jsx';
 import { fmtDay } from '../../lib/format.js';
+import useCountUp from '../../lib/useCountUp.js';
 
 /* Aula — info fra skolen (7 dage) + forslag/auto-oprettelser med status.
    Al tekst er mail-udledt: React escaper by default, ingen rå HTML her. */
@@ -16,6 +17,7 @@ const STATUS_LABEL = {
 };
 
 export default function Aula({ aula }) {
+  const newToday = useCountUp(aula?.new_today ?? 0);
   if (!aula) return null;
   const info = aula.info || [];
   const actions = (aula.recent || []).slice(0, 6);
@@ -25,8 +27,9 @@ export default function Aula({ aula }) {
     <Card
       label="Aula"
       accent="mail"
+      pulseKey={JSON.stringify(aula)}
       meta={aula.new_today > 0 && (
-        <span className="card-meta">{aula.new_today} nye i dag</span>
+        <span className="card-meta">{newToday} nye i dag</span>
       )}
     >
       {actions.map((a, i) => (
