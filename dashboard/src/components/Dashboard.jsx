@@ -3,7 +3,6 @@ import { fetchDashboard } from '../lib/api.js';
 import { fmtClock } from '../lib/format.js';
 import { startDaycycle } from '../lib/daycycle.js';
 import Backdrop from './Backdrop.jsx';
-import Planet from './Planet.jsx';
 import Hero from './widgets/Hero.jsx';
 import Kalender from './widgets/Kalender.jsx';
 import Opgaver from './widgets/Opgaver.jsx';
@@ -54,13 +53,12 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <Planet weather={data.weather} now={now} />
       <Hero brief={data.brief} weather={data.weather} elpris={data.elpris} now={now} />
 
       <div className="cards">
         <Kalender events={data.events} />
-        <Opgaver tasks={data.tasks} doneTasks={data.tasks_done} />
         <Foedselsdage birthdays={data.birthdays} />
+        <Opgaver tasks={data.tasks} doneTasks={data.tasks_done} />
         <Aula aula={data.aula} />
         <Post post={data.post} />
         <Ugeplan madplan={data.madplan} />

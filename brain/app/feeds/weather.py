@@ -8,7 +8,8 @@ async def fetch() -> dict:
     params = {
         "latitude": config.LATITUDE, "longitude": config.LONGITUDE,
         "current": "temperature_2m,weather_code,wind_speed_10m",
-        "daily": "temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code",
+        "daily": "temperature_2m_max,temperature_2m_min,precipitation_probability_max,"
+                 "weather_code,sunrise,sunset",
         "timezone": config.TZ, "forecast_days": 3,
     }
     async with httpx.AsyncClient(timeout=15) as client:
@@ -22,4 +23,8 @@ async def fetch() -> dict:
         "today_max": d["daily"]["temperature_2m_max"][0],
         "today_min": d["daily"]["temperature_2m_min"][0],
         "rain_pct": d["daily"]["precipitation_probability_max"][0],
+        # Lokale ISO-tider ("2026-07-06T04:38") — driver orbit-planetens
+        # sol-op/-ned (DEL 3-forløb). Ambient-feedet videresender dem.
+        "sunrise": d["daily"]["sunrise"][0],
+        "sunset": d["daily"]["sunset"][0],
     }

@@ -29,11 +29,15 @@ blødt opacity-lysskifte via `pulseKey` når et cards data opdateres.
 
 **DEL 3 — tid + vejr:** `lib/daycycle.js` interpolerer blødt mellem fire
 paletter (morgen/dag/aften/nat) og skriver `--tod-*`-vars hvert minut —
-baggrund, nebula, planet og orbit-skærm trækker fra dem. `Planet.jsx`
-øverst på hovedskærmen: layered gradients, terminator der vandrer med
-døgnet, skylag ved skyet (hurtigere ved blæst), svage regn-streaks +
-køligere tone ved regn, bylys om natten. Vejret vises bevidst både her og
-i hero'en.
+baggrund, nebula og orbit-skærm trækker fra dem. Selve vejr-planeten lever
+kun i ambient mode (orbit), ikke på dashboardet: dashboardets fokus er data.
+`orbit/LivingPlanet.jsx` er den centrale klode på orbit — den følger det
+RIGTIGE døgn (solen står op ved `weather.sunrise` og går ned ved
+`weather.sunset`, som nu kommer med i vejr-feedet) og vejret: skylag ved
+skyet (hurtigere drift i blæst), svage regn-streaks + dæmpning ved regn,
+bylys + måne om natten. Diskret narrativt liv: ét hus og en bil der ~hvert
+minut kører en tur ad en vej hele vejen rundt om kloden. Events absorberes
+stadig ind i kloden med et blødt lysskifte.
 
 **DEL 5 — /ambient/orbit:** Sekundær 1920×1080-fuldskærm
 (`orbit/OrbitScreen.jsx`): central orb (blød glød, breathing 8s), to tynde
@@ -41,6 +45,10 @@ ringe, korrektionsrate som ring-gauge, 7b/32b som måner skaleret efter
 kørselsandel, stats i næsten usynlige glas-paneler med CountUp,
 event-partikler der kredser ind og absorberes (1.5s opacity-ease + fadende
 label), stort ur + næste aftale, cursor skjules efter 3 s.
+
+**Backend:** Vejr-feedet (`feeds/weather.py`) henter nu også `sunrise`/
+`sunset` fra Open-Meteo; de sendes med i ambient-feedet og driver
+orbit-planetens sol-op/-ned.
 
 ## Nye endpoints (brain)
 

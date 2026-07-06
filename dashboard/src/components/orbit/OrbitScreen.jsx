@@ -3,6 +3,7 @@ import { fetchAmbientEvents, fetchAmbientStats, fetchDashboard } from '../../lib
 import { startDaycycle } from '../../lib/daycycle.js';
 import { fmtClock, fmtDateLine, fmtDay, fmtTime, p2 } from '../../lib/format.js';
 import useCountUp from '../../lib/useCountUp.js';
+import LivingPlanet from './LivingPlanet.jsx';
 
 /* /ambient/orbit (DEL 5) — roligt mission control på 1920×1080.
    Central orb = en blød, dæmpet glød (aldrig en lysende sol), tynde
@@ -248,12 +249,8 @@ export default function OrbitScreen() {
         <Gauge rate={r?.correction_rate ?? null} />
         <Moons models={stats?.models} />
 
-        {/* Orben: blød dæmpet glød med breathing over 8s */}
-        <div className="orb" aria-hidden="true">
-          <div className="orb-halo" />
-          <div className="orb-core" />
-          {pulse > 0 && <div className="orb-flash" key={pulse} />}
-        </div>
+        {/* Levende planet i centrum: følger døgn + vejr, med diskret liv */}
+        <LivingPlanet weather={doc?.weather} now={now} flashKey={pulse} />
 
         <Particles queueRef={queueRef} onAbsorb={onAbsorb} />
 

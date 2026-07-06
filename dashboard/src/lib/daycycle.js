@@ -38,6 +38,32 @@ export function daylight(hour) {
   return smooth(Math.max(0, Math.min(1, 0.5 + 0.62 * x)));
 }
 
+const hourOf = (iso) => {
+  const [h, m] = iso.slice(11, 16).split(':');
+  return +h + +m / 60;
+};
+
+/* Solens tilstand ud fra RIGTIG solopgang/-nedgang (weather.sunrise/sunset).
+   `up` = over horisonten, `altitude` 0 (horisont) → 1 (middag), `frac` 0→1
+   hen over dagslyset. Uden sol-tider falder vi tilbage på cosinus-modellen.
+   Bruges af orbit-planeten til at lade solen stå op og gå ned naturligt. */
+export function sunState(now, sunrise, sunset) {
+  const t = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
+  if (!sunrise || !sunset) {
+    const alt = daylight(t);
+    return { up: alt > 0.03, altitude: alt, frac: t / 24, night: alt <= 0.03 };
+  }
+  const sr = hourOf(sunrise), ss = hourOf(sunset);
+  if (t < sr || t > ss) {
+    // Nat: frac 0→1 fra solnedgang til næste solopgang (til stjerne/bylys-brug).
+    const nightLen = 24 - (ss - sr);
+    const into = (t < sr ? t + 24 - ss : t - ss);
+    return { up: false, altitude: 0, frac: into / nightLen, night: true };
+  }
+  const frac = (t - sr) / (ss - sr);
+  return { up: true, altitude: smooth(Math.sin(frac * Math.PI)), frac, night: false };
+}
+
 function apply() {
   const now = new Date();
   const p = paletteAt(now.getHours() + now.getMinutes() / 60);

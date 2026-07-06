@@ -129,7 +129,10 @@ export function mockDocument(ambient = false) {
         { title: 'Medbring skiftetøj til turdag', intent: 'handling', status: 'pending', date: day(2), time: null, created_at: at(0, 8, 5) },
       ],
     },
-    weather: { now_c: 18.2, code: 2, wind_ms: 4.1, today_max: 21.0, today_min: 12.4, rain_pct: 20 },
+    weather: {
+      now_c: 18.2, code: 2, wind_ms: 4.1, today_max: 21.0, today_min: 12.4, rain_pct: 20,
+      sunrise: at(0, 4, 40), sunset: at(0, 21, 45),
+    },
     elpris: {
       now_dkk_kwh: 1.42,
       hours: Array.from({ length: 24 }, (_, h) => ({
