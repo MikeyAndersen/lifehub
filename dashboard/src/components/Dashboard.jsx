@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchDashboard } from '../lib/api.js';
+import { fetchDashboard, regenerateBrief } from '../lib/api.js';
 import { fmtClock } from '../lib/format.js';
 import { startDaycycle } from '../lib/daycycle.js';
 import Backdrop from './Backdrop.jsx';
@@ -21,6 +21,22 @@ export default function Dashboard() {
   const [error, setError] = useState(null);
   const [now, setNow] = useState(() => new Date());
   const [okoHidden, setOkoHidden] = useState(false);
+  const [briefBusy, setBriefBusy] = useState(false);
+  const [briefErr, setBriefErr] = useState(null);
+
+  const regenerate = async () => {
+    if (briefBusy) return;
+    setBriefBusy(true);
+    setBriefErr(null);
+    try {
+      const r = await regenerateBrief();
+      setData((d) => ({ ...d, brief: r.brief })); // opdatér straks, vent ikke på poll
+    } catch {
+      setBriefErr('Kunne ikke generere brief lige nu — LLM svarer måske ikke.');
+    } finally {
+      setBriefBusy(false);
+    }
+  };
 
   useEffect(() => {
     const load = () =>
@@ -53,7 +69,16 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <Hero brief={data.brief} weather={data.weather} elpris={data.elpris} now={now} />
+      <Hero
+        brief={data.brief}
+        weather={data.weather}
+        elpris={data.elpris}
+        now={now}
+        canRegenerate={data.is_admin}
+        briefBusy={briefBusy}
+        briefError={briefErr}
+        onRegenerate={regenerate}
+      />
 
       <div className="cards">
         <Kalender events={data.events} />

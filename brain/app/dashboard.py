@@ -94,35 +94,78 @@ def _dinner_brief_line() -> str | None:
     return "🍽 Ingen madplan for i dag"
 
 
-async def morning_brief() -> None:
-    """06:30 job: compose the brief, cache it for the dashboard, push to Telegram."""
-    ctx = {
-        "dato": datetime.now(ZoneInfo(config.TZ)).strftime("%A %d. %B"),
+_BRIEF_RETRY_BACKOFF_S = 3
+
+
+def _brief_context() -> dict:
+    now = datetime.now(ZoneInfo(config.TZ))
+    return {
+        "dato": now.strftime("%A %d. %B"),
         "kalender_i_dag": [e for e in (store.get_cache("events") or [])
-                           if e["start"][:10] == datetime.now(ZoneInfo(config.TZ)).date().isoformat()],
+                           if e["start"][:10] == now.date().isoformat()],
         "opgaver": (store.get_cache("tasks") or [])[:6],
         "foedselsdage": (store.get_cache("birthdays") or [])[:3],
         "vejr": store.get_cache("weather"),
     }
+
+
+async def _compose_brief_text(attempts: int) -> str:
+    """LLM-narrativ + aftensmadslinje. Genforsøger KUN det flakey LLM-kald —
+    Ollama kan være kold eller unåelig et øjeblik, og et enkelt fejlet kald
+    var før nok til at efterlade gårsdagens brief hængende. Alt med
+    bivirkninger (digest, broadcast) ligger uden for løkken. Kaster hvis
+    alle forsøg fejler."""
+    ctx = _brief_context()
+    last: Exception | None = None
+    for i in range(attempts):
+        try:
+            text = await llm.compose_brief(ctx)
+            break
+        except Exception as exc:  # noqa: BLE001 — enhver LLM/netværksfejl genforsøges
+            last = exc
+            log.warning("brief compose forsøg %d/%d fejlede: %s", i + 1, attempts, exc)
+            if i < attempts - 1:
+                await asyncio.sleep(_BRIEF_RETRY_BACKOFF_S)
+    else:
+        raise last if last else RuntimeError("brief compose fejlede")
+    # Madplan (Fase 2): dagens aftensmad som deterministisk linje.
+    dinner = _dinner_brief_line()
+    if dinner:
+        text += "\n" + dinner
+    return text
+
+
+def _cache_brief(text: str) -> dict:
+    payload = {"text": text,
+               "date": datetime.now(ZoneInfo(config.TZ)).date().isoformat()}
+    store.set_cache("brief", payload)
+    return payload
+
+
+async def morning_brief() -> None:
+    """06:30 job: compose (med digests + broadcast), cache, push til Telegram."""
     try:
-        text = await llm.compose_brief(ctx)
-        # Madplan (Fase 2): dagens aftensmad som deterministisk linje.
-        dinner = _dinner_brief_line()
-        if dinner:
-            text += "\n" + dinner
-        # Aula-digest: deterministisk sektion efter LLM-teksten. Info-items
-        # medtages én gang (markeres briefed) og vises aldrig igen.
-        if config.GMAIL_ENABLED:
+        text = await _compose_brief_text(attempts=3)
+    except Exception:
+        log.exception("morning brief failed after retries")
+        return
+    # Aula-digest: deterministisk sektion efter LLM-teksten. Info-items
+    # medtages én gang (markeres briefed) og vises aldrig igen — derfor KUN
+    # i det planlagte job, ALDRIG i manuel regenerering (ville spise dem).
+    if config.GMAIL_ENABLED:
+        try:
             aula_lines, expired = aula.collect_brief_digest()
             if aula_lines:
                 text += "\n📧 Aula: " + " · ".join(aula_lines)
             if expired:
                 text += f"\n⏳ {expired} Aula-forslag udløb ubesvaret."
-        store.set_cache("brief", {"text": text,
-                                  "date": datetime.now(ZoneInfo(config.TZ)).date().isoformat()})
+        except Exception:
+            log.exception("aula digest failed")
+    _cache_brief(text)
+    try:
         await telegram.broadcast_brief(text)
     except Exception:
-        log.exception("morning brief failed")
+        log.exception("brief broadcast failed")
 
     # Post-digest (Del 4): egen admin-besked, aldrig familie-briefen —
     # indbakken er privat. Egen try, så en brief-fejl ikke sluger den.
@@ -138,11 +181,34 @@ async def morning_brief() -> None:
             log.exception("post digest failed")
 
 
+async def regenerate_brief() -> bool:
+    """Manuel dashboard-regenerering (↻-knappen). Frisk narrativ +
+    aftensmadslinje — bevidst UDEN aula/post-digest (de forbruger info-items)
+    og UDEN Telegram-broadcast, så en midt-på-dagen-regenerering hverken
+    spiser skoleinfo eller spammer familien. True ved succes."""
+    try:
+        text = await _compose_brief_text(attempts=2)
+    except Exception:
+        log.exception("manual brief regenerate failed")
+        return False
+    _cache_brief(text)
+    return True
+
+
 # ── Aggregate document ──────────────────────────────────────────────
+def _current_brief() -> dict | None:
+    """Kun DAGENS brief vises; en ældre (gårsdagens) skjules, så
+    dashboardet aldrig hænger på en forældet brief. Hero falder tilbage
+    til 'kommer kl. 06.30'-hintet / regenerér-knappen indtil dagens er klar."""
+    brief = store.get_cache("brief")
+    today = datetime.now(ZoneInfo(config.TZ)).date().isoformat()
+    return brief if brief and brief.get("date") == today else None
+
+
 def build(viewer_email: str | None, ambient: bool = False) -> dict:
     doc = {
         "generated_at": datetime.now(ZoneInfo(config.TZ)).isoformat(timespec="seconds"),
-        "brief": store.get_cache("brief"),
+        "brief": _current_brief(),
         "events": store.get_cache("events") or [],
         "birthdays": store.get_cache("birthdays") or [],
         "tasks": store.get_cache("tasks") or [],
@@ -163,6 +229,8 @@ def build(viewer_email: str | None, ambient: bool = False) -> dict:
         except Exception:
             log.exception("aula feed failed")
     is_admin = bool(viewer_email) and viewer_email.lower() in config.ADMIN_EMAILS
+    # Signal til frontenden (fx regenerér-brief-knappen); ambient er read-only.
+    doc["is_admin"] = is_admin and not ambient
     if is_admin and not ambient:
         doc["finance"] = store.get_cache("finance") or {"status": "not_configured"}
         # Post-triage er admin-gated som finance: andre enheder (og /ambient)

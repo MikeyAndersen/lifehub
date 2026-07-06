@@ -259,6 +259,13 @@ body {
   text-wrap: pretty;
   white-space: pre-line;
 }
+.hero-actions {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-top: 16px;
+}
+.hero-actions .linkish:disabled { opacity: 0.5; cursor: default; }
 
 /* Kort-flow: kort flyder som tekst og fylder rækken ud */
 .cards {

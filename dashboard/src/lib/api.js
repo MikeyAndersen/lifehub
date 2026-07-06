@@ -48,6 +48,22 @@ export async function fetchAmbientEvents(afterId) {
   }
 }
 
+/** Regenerér dagens brief manuelt (↻-knappen). Admin-gated i brain.
+ *  Returnerer { ok, brief } så dashboardet kan opdatere med det samme. */
+export async function regenerateBrief() {
+  try {
+    const res = await fetch(`${BASE}/api/brief/regenerate`, { method: 'POST' });
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      const { mockDocument } = await import('./mock.js');
+      return { ok: true, brief: { ...mockDocument().brief } };
+    }
+    throw err;
+  }
+}
+
 /** Markér en opgave som færdig/åben i Vikunja via brain. Kaster ved fejl. */
 export async function setTaskDone(id, done = true) {
   const res = await fetch(`${BASE}/api/tasks/${id}/done`, {

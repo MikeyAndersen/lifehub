@@ -208,9 +208,23 @@ async def api_task_done(task_id: int, request: Request) -> dict:
 
 @app.post("/api/brief/run")
 async def run_brief_now(request: Request) -> dict:
-    """Manual trigger for testing the morning brief."""
+    """Manual trigger for testing the FULL morning brief (digests + broadcast)."""
     email = _viewer_email(request)
     if not email or email.lower() not in config.ADMIN_EMAILS:
         raise HTTPException(status_code=403)
     await dashboard.morning_brief()
     return {"ok": True}
+
+
+@app.post("/api/brief/regenerate")
+async def regenerate_brief_now(request: Request) -> dict:
+    """Dashboard-knappen ↻: regenerér KUN dagens brief-tekst (ingen
+    Aula/post-digest, ingen Telegram-broadcast). Admin-gated som resten.
+    Returnerer den nye brief, så dashboardet kan opdatere med det samme."""
+    email = _viewer_email(request)
+    if not email or email.lower() not in config.ADMIN_EMAILS:
+        raise HTTPException(status_code=403)
+    if not await dashboard.regenerate_brief():
+        raise HTTPException(status_code=503,
+                            detail="Kunne ikke generere brief (LLM utilgængelig?)")
+    return {"ok": True, "brief": store.get_cache("brief")}
