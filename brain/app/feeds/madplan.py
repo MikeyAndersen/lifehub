@@ -30,6 +30,16 @@ async def fetch() -> dict:
         return r.json()
 
 
+async def inventory() -> list:
+    """GET madplans beholdning (Feature B §4.3). Kaster ved fejl med vilje —
+    kalderen beholder seneste cache (stale-mønstret, samme som fetch())."""
+    url = f"{config.MADPLAN_URL.rstrip('/')}/api/inventory"
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.get(url, headers=_headers())
+        r.raise_for_status()
+        return r.json()
+
+
 async def get_suggestions() -> dict:
     """GET næste uges forslags-sæt (§2.4). Bruges af Telegram-genvejen (Fase 6)."""
     url = f"{config.MADPLAN_URL.rstrip('/')}/api/suggestions/current"

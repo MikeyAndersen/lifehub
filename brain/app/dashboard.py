@@ -19,6 +19,7 @@ log = logging.getLogger("lifehub")
 
 # Guard: dashboard-load-udløst refresh må ikke overlappe det planlagte poll.
 _madplan_lock = asyncio.Lock()
+_beholdning_lock = asyncio.Lock()
 
 
 # ── Refresh jobs (called by the scheduler) ──────────────────────────
@@ -68,6 +69,17 @@ async def refresh_madplan() -> None:
             store.set_cache("madplan", await madplan.fetch())
         except Exception:
             log.exception("madplan refresh failed")
+
+
+async def refresh_beholdning() -> None:
+    """Poll madplans beholdning (Feature B). Ved fejl beholdes seneste cache."""
+    if not madplan.enabled() or _beholdning_lock.locked():
+        return
+    async with _beholdning_lock:
+        try:
+            store.set_cache("beholdning", await madplan.inventory())
+        except Exception:
+            log.exception("beholdning refresh failed")
 
 
 async def ensure_fresh_madplan() -> None:
@@ -223,6 +235,14 @@ def build(viewer_email: str | None, ambient: bool = False) -> dict:
         payload, updated_at = mp
         payload["stale"] = (time.time() - updated_at) > config.MADPLAN_STALE_MINUTES * 60
         doc["madplan"] = payload
+    # Beholdning (Feature B §4.3) — samme cache/stale-mønster som madplan.
+    inv = store.get_cache_meta("beholdning")
+    if inv is not None:
+        items, updated_at = inv
+        doc["beholdning"] = {
+            "items": items,
+            "stale": (time.time() - updated_at) > config.MADPLAN_STALE_MINUTES * 60,
+        }
     if config.GMAIL_ENABLED:
         try:
             doc["aula"] = aula.feed(days=7)

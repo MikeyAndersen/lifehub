@@ -60,6 +60,8 @@ async def lifespan(_: FastAPI):
     scheduler.add_job(dashboard.refresh_finance, "interval", hours=6)
     scheduler.add_job(dashboard.refresh_madplan, "interval",
                       minutes=config.MADPLAN_POLL_MINUTES, jitter=30)
+    scheduler.add_job(dashboard.refresh_beholdning, "interval",
+                      minutes=config.MADPLAN_POLL_MINUTES, jitter=30)
     scheduler.add_job(dashboard.morning_brief, CronTrigger(hour=6, minute=30))
     if config.GMAIL_ENABLED or config.TRIAGE_ENABLED:
         scheduler.add_job(_poll_mail_job, "interval",
@@ -70,7 +72,7 @@ async def lifespan(_: FastAPI):
     # Warm the caches once at boot.
     for job in (dashboard.refresh_weather, dashboard.refresh_elpris,
                 dashboard.refresh_calendar, dashboard.refresh_tasks,
-                dashboard.refresh_madplan):
+                dashboard.refresh_madplan, dashboard.refresh_beholdning):
         try:
             await job()
         except Exception:
