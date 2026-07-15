@@ -17,7 +17,7 @@ import httpx
 from dateutil import parser as dtparse
 from pydantic import ValidationError
 
-from . import config
+from . import config, dates
 from .models import AulaItem, TriageItem
 
 INTENT_SCHEMA = {
@@ -163,6 +163,22 @@ async def parse_message(text: str, *, base_url: str | None = None,
     if parsed.get("intent") == "event" and not parsed["start"]:
         # An event without a valid time is really a task.
         parsed["intent"] = "task"
+
+    # Deterministisk dansk dato-resolver overtrumfer modellens dato-gæt når
+    # teksten indeholder præcis ét entydigt relativt udtryk ("på torsdag", "om
+    # 14 dage") — dem regner små modeller ofte forkert. Klokkeslæt og intent
+    # bevares; absolutte datoer ("d. 20. marts") rører resolveren ikke.
+    det = dates.resolve(text, now.date())
+    if det:
+        for field in ("start", "due"):
+            v = parsed.get(field)
+            if v:
+                parsed[field] = det + v[10:] if v[10:11] == "T" else det
+                break
+        else:
+            if parsed.get("intent") in ("task", "note"):
+                parsed["due"] = det
+
     # Normalisér confidence til [0,1] eller None, så gating i telegram.py kan
     # stole på den (modellen kan finde på at svare tal uden for intervallet).
     conf = parsed.get("confidence")

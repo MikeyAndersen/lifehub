@@ -268,6 +268,21 @@ def _can_make_event(parsed: dict) -> bool:
     return bool(parsed.get("start") or parsed.get("due"))
 
 
+async def _parse_with_best_model(text: str) -> dict:
+    """Route pass 1 til GPU-32b'eren når PARSE_PREFER_GPU er slået til OG den er
+    online (bedre præcision med det samme); ellers — og ved enhver fejl — den
+    lokale 7b. Default er 7b, se config.PARSE_PREFER_GPU for bagsiden."""
+    if config.PARSE_PREFER_GPU and config.STRONG_OLLAMA_URL:
+        try:
+            if await llm.is_online(config.STRONG_OLLAMA_URL):
+                return await llm.parse_message(
+                    text, base_url=config.STRONG_OLLAMA_URL,
+                    model=config.STRONG_OLLAMA_MODEL)
+        except Exception:
+            pass  # falder tilbage til den lokale model
+    return await llm.parse_message(text)
+
+
 def _parse_confirm_keyboard(pid: str, parsed: dict) -> dict:
     row = [{"text": "✅ Opret", "callback_data": f"ok:{pid}"}]
     intent = parsed.get("intent")
@@ -428,7 +443,7 @@ async def handle_update(update: dict) -> None:
     if await _maybe_handle_madplan(chat_id, text):
         return
 
-    parsed = await llm.parse_message(text)
+    parsed = await _parse_with_best_model(text)
 
     # Finance is Mikey-only: silently downgrade for everyone else.
     if parsed["intent"] == "expense" and chat_id != config.TELEGRAM_ADMIN_CHAT_ID:
@@ -437,7 +452,10 @@ async def handle_update(update: dict) -> None:
     # Er modellen usikker (typisk event-vs-task-tvivl), så bekræft FØR
     # oprettelse i stedet for at eksekvere straks: brugeren kan godkende,
     # skifte type eller droppe. Sikre gæt oprettes fortsat med det samme.
+    # Events får et confidence-fradrag, da små modeller er for skråsikre på dem.
     conf = parsed.get("confidence")
+    if conf is not None and parsed["intent"] == "event":
+        conf -= config.EVENT_CONFIDENCE_PENALTY
     if (parsed["intent"] in _CONFIRMABLE and conf is not None
             and conf < config.PARSE_CONFIRM_THRESHOLD):
         pid = store.add_pending(parsed)

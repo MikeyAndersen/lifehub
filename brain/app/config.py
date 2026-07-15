@@ -12,12 +12,22 @@ TELEGRAM_ADMIN_CHAT_ID = int(os.getenv("TELEGRAM_ADMIN_CHAT_ID", "0"))
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
-WHISPER_MODEL = os.getenv("WHISPER_MODEL", "small")
+# Whisper-model til voicebeskeder. "medium" er markant bedre til dansk end
+# "small" (bedre INPUT til parseren). "large-v3" er bedst men langsom/tung på
+# CPU — sæt WHISPER_MODEL derefter hvis maskinen kan følge med.
+WHISPER_MODEL = os.getenv("WHISPER_MODEL", "medium")
 
-# Telegram-parsing: er modellens confidence under denne grænse, bekræftes
-# beskeden med knapper (✅/🔄/🗑) FØR den oprettes, i stedet for straks-eksekvering.
-# Sæt til 0 for altid straks-eksekvering (gammel adfærd).
+# Telegram-parsing: er modellens (justerede) confidence under denne grænse,
+# bekræftes beskeden med knapper (✅/🔄/🗑) FØR den oprettes, i stedet for
+# straks-eksekvering. Sæt til 0 for altid straks-eksekvering (gammel adfærd).
 PARSE_CONFIRM_THRESHOLD = float(os.getenv("PARSE_CONFIRM_THRESHOLD", "0.75"))
+# Små modeller er ofte for skråsikre på "event" (en dato ⇒ kalender). Vi
+# trækker denne værdi fra confidence for event-gæt, så de oftere bekræftes.
+EVENT_CONFIDENCE_PENALTY = float(os.getenv("EVENT_CONFIDENCE_PENALTY", "0.1"))
+# Opt-in: route pass 1 til GPU-32b'eren når den er online (bedre præcision
+# med det samme), med fallback til den lokale 7b. Default fra, fordi 32b'eren
+# har keep_alive=0 og betaler kold opstart pr. kald → langsommere svar.
+PARSE_PREFER_GPU = os.getenv("PARSE_PREFER_GPU", "false").lower() == "true"
 
 # Dual-pass quality review. Empty STRONG_OLLAMA_URL disables the feature
 # entirely: no queueing, no extra calls, behaviour exactly as before.
