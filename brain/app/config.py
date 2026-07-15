@@ -14,6 +14,11 @@ OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "small")
 
+# Telegram-parsing: er modellens confidence under denne grænse, bekræftes
+# beskeden med knapper (✅/🔄/🗑) FØR den oprettes, i stedet for straks-eksekvering.
+# Sæt til 0 for altid straks-eksekvering (gammel adfærd).
+PARSE_CONFIRM_THRESHOLD = float(os.getenv("PARSE_CONFIRM_THRESHOLD", "0.75"))
+
 # Dual-pass quality review. Empty STRONG_OLLAMA_URL disables the feature
 # entirely: no queueing, no extra calls, behaviour exactly as before.
 STRONG_OLLAMA_URL = os.getenv("STRONG_OLLAMA_URL", "")

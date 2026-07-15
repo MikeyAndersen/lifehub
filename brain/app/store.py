@@ -140,6 +140,20 @@ def pop_pending(pid: str) -> dict | None:
     return json.loads(row[0]) if row else None
 
 
+def get_pending(pid: str) -> dict | None:
+    """Læs uden at slette — bruges når en bekræftelse redigeres (fx intent-swap)
+    før den til sidst oprettes eller droppes."""
+    with _db() as con:
+        row = con.execute("SELECT payload FROM pending WHERE id=?", (pid,)).fetchone()
+    return json.loads(row[0]) if row else None
+
+
+def update_pending(pid: str, payload: dict) -> None:
+    with _db() as con:
+        con.execute("UPDATE pending SET payload=? WHERE id=?",
+                    (json.dumps(payload, ensure_ascii=False), pid))
+
+
 def log_expense(title: str, amount_dkk: float, noted_at: str, raw: str) -> str:
     row_id = uuid.uuid4().hex
     with _db() as con:

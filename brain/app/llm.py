@@ -35,35 +35,55 @@ INTENT_SCHEMA = {
         "amount_dkk": {"type": ["number", "null"]},
         "items": {"type": "array", "items": {"type": "string"}},
         "notes": {"type": ["string", "null"]},
+        "confidence": {"type": "number", "description": "0..1, hvor sikker på intent+dato"},
     },
-    "required": ["intent", "title"],
+    "required": ["intent", "title", "confidence"],
 }
 
 SYSTEM_PROMPT = """Du er parseren i en privat dansk familie-assistent. Du modtager én besked \
 (ofte talesprog fra en voicebesked) og returnerer KUN et JSON-objekt der matcher skemaet.
 
 Regler:
-- "intent": event = noget med et tidspunkt i kalenderen. task = en to-do. shopping = varer \
-der skal købes. expense = en udgift der skal noteres. note = information uden handling. \
-question = brugeren spørger om noget. unknown = kan ikke afgøres.
+- "intent" — vælg præcis én:
+  • event = en aftale/begivenhed du skal MØDE OP til på et bestemt tidspunkt eller \
+sted (møde, lægebesøg, træning, fest, "fri fra skole"). Datoen er "start".
+  • task = noget DU selv skal gøre eller sørge for, evt. inden en frist, men UDEN et \
+fast mødetidspunkt. Starter tit med et udsagnsord (køb, husk, book, bestil, betal, \
+ordn, ring, aflever, vand). Datoen er "due" (frist), aldrig "start".
+  • shopping = varer der skal købes. expense = en udgift der skal noteres. \
+note = information uden handling. question = brugeren spørger om noget. \
+unknown = kan ikke afgøres.
+- EVENT vs TASK (den vigtigste beslutning): er der et konkret KLOKKESLÆT, eller er \
+det en begivenhed man deltager i → event. Er det en handling du selv skal udføre \
+uden mødetidspunkt → task, OGSÅ selvom der nævnes en dag eller frist. En dato alene \
+gør IKKE noget til et event.
 - Datoer/tider skrives som ISO 8601 lokal tid uden tidszone, fx "2026-07-07T14:00".
 - Relative udtryk ("på torsdag", "i morgen", "om 14 dage") omregnes ud fra NU-tidspunktet \
 du får oplyst. "På torsdag" er den førstkommende torsdag EFTER i dag.
 - Events uden sluttid: sæt end = start + 1 time. Heldagsting: all_day = true og tid 00:00.
 - Titler er korte og pæne: "Tandlæge", ikke "husk at jeg skal til tandlæge".
 - Beløb: kun tallet i DKK.
+- "confidence" 0..1: hvor sikker du er på intent (især event vs task) OG dato. Vær \
+konservativ — er du det mindste i tvivl, så sæt den lavt (under 0.75), så brugeren \
+kan bekræfte.
 
-Eksempler (NU = tirsdag 2026-06-30T18:00):
+Eksempler (NU = tirsdag 2026-06-30T18:00). Bemærk de kontrasterende par:
 "husk tandlæge på torsdag klokken 14" ->
-{"intent":"event","title":"Tandlæge","start":"2026-07-02T14:00","end":"2026-07-02T15:00","all_day":false,"due":null,"amount_dkk":null,"items":[],"notes":null}
+{"intent":"event","title":"Tandlæge","start":"2026-07-02T14:00","end":"2026-07-02T15:00","all_day":false,"due":null,"amount_dkk":null,"items":[],"notes":null,"confidence":0.95}
 "jeg skal have styr på gødning til plænen i weekenden" ->
-{"intent":"task","title":"Gødning til plænen","start":null,"end":null,"all_day":false,"due":"2026-07-04","amount_dkk":null,"items":[],"notes":null}
+{"intent":"task","title":"Gødning til plænen","start":null,"end":null,"all_day":false,"due":"2026-07-04","amount_dkk":null,"items":[],"notes":null,"confidence":0.9}
+"forældremøde på fredag kl 17" ->
+{"intent":"event","title":"Forældremøde","start":"2026-07-03T17:00","end":"2026-07-03T18:00","all_day":false,"due":null,"amount_dkk":null,"items":[],"notes":null,"confidence":0.95}
+"book tid til bilsyn inden på fredag" ->
+{"intent":"task","title":"Book bilsyn","start":null,"end":null,"all_day":false,"due":"2026-07-03","amount_dkk":null,"items":[],"notes":null,"confidence":0.9}
 "køb mælk rugbrød og bleer" ->
-{"intent":"shopping","title":"Indkøb","start":null,"end":null,"all_day":false,"due":null,"amount_dkk":null,"items":["Mælk","Rugbrød","Bleer"],"notes":null}
+{"intent":"shopping","title":"Indkøb","start":null,"end":null,"all_day":false,"due":null,"amount_dkk":null,"items":["Mælk","Rugbrød","Bleer"],"notes":null,"confidence":0.95}
 "noter 450 kroner til fodboldstøvler" ->
-{"intent":"expense","title":"Fodboldstøvler","start":null,"end":null,"all_day":false,"due":null,"amount_dkk":450,"items":[],"notes":null}
+{"intent":"expense","title":"Fodboldstøvler","start":null,"end":null,"all_day":false,"due":null,"amount_dkk":450,"items":[],"notes":null,"confidence":0.9}
 "ungerne har fri fra skole hele fredag" ->
-{"intent":"event","title":"Ungerne fri fra skole","start":"2026-07-03T00:00","end":"2026-07-04T00:00","all_day":true,"due":null,"amount_dkk":null,"items":[],"notes":null}
+{"intent":"event","title":"Ungerne fri fra skole","start":"2026-07-03T00:00","end":"2026-07-04T00:00","all_day":true,"due":null,"amount_dkk":null,"items":[],"notes":null,"confidence":0.85}
+"jeg skal lige ordne det med skolen på mandag" ->
+{"intent":"task","title":"Ordn det med skolen","start":null,"end":null,"all_day":false,"due":"2026-07-06","amount_dkk":null,"items":[],"notes":null,"confidence":0.5}
 """
 
 
@@ -143,6 +163,11 @@ async def parse_message(text: str, *, base_url: str | None = None,
     if parsed.get("intent") == "event" and not parsed["start"]:
         # An event without a valid time is really a task.
         parsed["intent"] = "task"
+    # Normalisér confidence til [0,1] eller None, så gating i telegram.py kan
+    # stole på den (modellen kan finde på at svare tal uden for intervallet).
+    conf = parsed.get("confidence")
+    parsed["confidence"] = (max(0.0, min(1.0, float(conf)))
+                            if isinstance(conf, (int, float)) else None)
     parsed["source_text"] = text
     return parsed
 

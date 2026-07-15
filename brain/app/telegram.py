@@ -1,12 +1,12 @@
 """Telegram bot logic, hand-rolled on the Bot API over httpx.
 
-Flow: update arrives on the webhook -> text or transcribed voice -> LLM parse ->
-execute immediately against Google Calendar / Vikunja / expense log and reply
-with the result. Finance intents are only accepted from the admin chat id.
-
-The older confirmation flow (inline ✅/🗑 buttons via store.add_pending +
-_confirm_keyboard, resolved in the callback_query branch of handle_update) is
-kept intact: old messages may still fire callbacks, and it can be reinstated.
+Flow: update arrives on the webhook -> text or transcribed voice -> LLM parse.
+Confident parses execute immediately against Google Calendar / Vikunja / the
+expense log and reply with the result. Low-confidence parses (typically
+event-vs-task doubt) are instead confirmed first: the user sees what WOULD be
+created and can approve, switch type (event<->task) or drop it — resolved in
+the callback_query branch of handle_update via store.add_pending +
+_parse_confirm_keyboard. Finance intents are only accepted from the admin chat.
 """
 from __future__ import annotations
 
@@ -231,11 +231,52 @@ async def _maybe_handle_madplan(chat_id: int, text: str) -> bool:
     return False
 
 
-def _confirm_keyboard(pid: str) -> dict:
-    return {"inline_keyboard": [[
-        {"text": "✅ Opret", "callback_data": f"ok:{pid}"},
-        {"text": "🗑 Drop", "callback_data": f"drop:{pid}"},
-    ]]}
+# ── Bekræftelse ved lav confidence (event-vs-task-usikkerhed m.m.) ──
+# Er modellens confidence under PARSE_CONFIRM_THRESHOLD, oprettes intet
+# straks; brugeren ser hvad der VILLE blive oprettet og kan godkende,
+# skifte type (event↔task) eller droppe. Retter fejlen FØR den sker.
+_CONFIRMABLE = {"event", "task", "shopping", "expense", "note"}
+
+
+def _swap_intent(parsed: dict) -> dict:
+    """Vend event↔task på et forslag. event→task: mødetidspunktet bliver til
+    en frist. task→event: en dato-frist bliver et heldags-event (har opgaven
+    et klokkeslæt bruges det). Ingen dato → kan ikke blive event; se
+    _parse_confirm_keyboard, der kun tilbyder swap når det er muligt."""
+    p = dict(parsed)
+    if p.get("intent") == "event":
+        base = p.get("start") or p.get("due")
+        p["intent"] = "task"
+        p["due"] = base[:10] if base else None
+        p["start"] = p["end"] = None
+        p["all_day"] = False
+    else:
+        base = p.get("start") or p.get("due")
+        p["intent"] = "event"
+        p["end"] = None  # create_event defaulter end = start + 1t
+        if base and "T" in base:
+            p["start"], p["all_day"] = base, False
+        elif base:
+            p["start"], p["all_day"] = base, True  # kun dato → heldags-event
+        else:
+            p["start"], p["all_day"] = None, False
+        p["due"] = None
+    return p
+
+
+def _can_make_event(parsed: dict) -> bool:
+    return bool(parsed.get("start") or parsed.get("due"))
+
+
+def _parse_confirm_keyboard(pid: str, parsed: dict) -> dict:
+    row = [{"text": "✅ Opret", "callback_data": f"ok:{pid}"}]
+    intent = parsed.get("intent")
+    if intent == "event":
+        row.append({"text": "🔄 Gør til opgave", "callback_data": f"swap:{pid}"})
+    elif intent == "task" and _can_make_event(parsed):
+        row.append({"text": "🔄 Gør til aftale", "callback_data": f"swap:{pid}"})
+    row.append({"text": "🗑 Drop", "callback_data": f"drop:{pid}"})
+    return {"inline_keyboard": [row]}
 
 
 def _describe(parsed: dict) -> str:
@@ -318,17 +359,35 @@ async def handle_update(update: dict) -> None:
             await _handle_aula_callback(cq)
             return
         action, _, pid = cq["data"].partition(":")
-        parsed = store.pop_pending(pid)
+        message_id = cq["message"]["message_id"]
         await _call("answerCallbackQuery", callback_query_id=cq["id"])
+
+        async def _edit(text: str, markup: dict | None = None) -> None:
+            await _call("editMessageText", chat_id=chat_id, message_id=message_id,
+                        text=text, **({"reply_markup": markup} if markup else {}))
+
+        # Skift type uden at slette forslaget — opdatér besked + knapper.
+        if action == "swap":
+            parsed = store.get_pending(pid)
+            if not parsed:
+                await _edit("Den er udløbet — send beskeden igen.")
+                return
+            parsed = _swap_intent(parsed)
+            store.update_pending(pid, parsed)
+            await _edit(f"{_describe(parsed)}\n\nEr det rigtigt?",
+                        _parse_confirm_keyboard(pid, parsed))
+            return
+
+        parsed = store.pop_pending(pid)
         if not parsed:
-            await send(chat_id, "Den er udløbet — send beskeden igen.")
+            await _edit("Den er udløbet — send beskeden igen.")
             return
         if action == "ok":
             result, created_ref = await _execute(parsed)
             _maybe_enqueue(parsed, chat_id, created_ref)
-            await send(chat_id, result)
+            await _edit(f"{_describe(parsed)}\n\n{result}")
         else:
-            await send(chat_id, "Droppet 👍")
+            await _edit("Droppet 👍")
         return
 
     # ── Messages ─────────────────────────────────────────────────
@@ -375,10 +434,17 @@ async def handle_update(update: dict) -> None:
     if parsed["intent"] == "expense" and chat_id != config.TELEGRAM_ADMIN_CHAT_ID:
         parsed["intent"] = "note"
 
-    # Execute immediately instead of asking for confirmation. The confirm flow
-    # (store.add_pending + _confirm_keyboard, handled by the callback_query
-    # branch above) is kept intact so old inline buttons still work and the
-    # flow can be reinstated later.
+    # Er modellen usikker (typisk event-vs-task-tvivl), så bekræft FØR
+    # oprettelse i stedet for at eksekvere straks: brugeren kan godkende,
+    # skifte type eller droppe. Sikre gæt oprettes fortsat med det samme.
+    conf = parsed.get("confidence")
+    if (parsed["intent"] in _CONFIRMABLE and conf is not None
+            and conf < config.PARSE_CONFIRM_THRESHOLD):
+        pid = store.add_pending(parsed)
+        await send(chat_id, f"{_describe(parsed)}\n\nEr det rigtigt?",
+                   _parse_confirm_keyboard(pid, parsed))
+        return
+
     result, created_ref = await _execute(parsed)
     _maybe_enqueue(parsed, chat_id, created_ref)
     await send(chat_id, f"{_describe(parsed)}\n\n{result}")
