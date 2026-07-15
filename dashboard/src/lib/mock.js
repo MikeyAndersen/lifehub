@@ -147,6 +147,15 @@ export function mockDocument(ambient = false) {
       updated_at: new Date().toISOString(),
       stale: false,
     },
+    // Feature B-beholdning: brain cacher madplans /api/inventory.
+    beholdning: {
+      stale: false,
+      items: [
+        { id: 1, name: 'Smør', quantity: 2, unit: '250 g', category: 'koleskab', source: 'nemlig' },
+        { id: 2, name: 'Hakket oksekød', quantity: 1, unit: '400 g', category: 'fryser', source: 'nemlig' },
+        { id: 3, name: 'Pasta', quantity: 3, unit: '500 g', category: 'skab', source: 'manuel' },
+      ],
+    },
     transit: {
       station: 'Lyngby st.',
       direction: 'København H',

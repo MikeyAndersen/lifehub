@@ -8,6 +8,7 @@ import Kalender from './widgets/Kalender.jsx';
 import Opgaver from './widgets/Opgaver.jsx';
 import Foedselsdage from './widgets/Foedselsdage.jsx';
 import Ugeplan from './widgets/Ugeplan.jsx';
+import Beholdning from './widgets/Beholdning.jsx';
 import Afgange from './widgets/Afgange.jsx';
 import Aula from './widgets/Aula.jsx';
 import Post from './widgets/Post.jsx';
@@ -87,6 +88,7 @@ export default function Dashboard() {
         <Aula aula={data.aula} />
         <Post post={data.post} />
         <Ugeplan madplan={data.madplan} />
+        <Beholdning beholdning={data.beholdning} />
         <Afgange transit={data.transit} now={now} />
         {data.finance && !okoHidden && (
           <Oekonomi finance={data.finance} onHide={() => setOkoHidden(true)} />

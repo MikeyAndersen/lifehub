@@ -518,6 +518,14 @@ body {
   color: var(--lh-text-3);
 }
 
+/* Beholdning (Feature B) */
+.inv-group { margin-top: 0.5rem; }
+.inv-group:first-child { margin-top: 0; }
+.inv-loc { font-size: 0.72rem; opacity: 0.65; margin-bottom: 0.2rem; }
+.inv-items { display: flex; flex-wrap: wrap; gap: 0.3rem 0.5rem; }
+.inv-item { font-size: 0.85rem; }
+.inv-more { opacity: 0.55; }
+
 /* Afgange */
 .dep-row {
   display: grid;
