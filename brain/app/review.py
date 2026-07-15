@@ -278,6 +278,9 @@ async def _process(item: dict, now: datetime) -> str | tuple[str, str]:
                              strong.get("amount_dkk") or 0)
         desc = _diff_desc(old_fp, new_fp)
 
+    # Data-flywheel: 32b-rettelsen er et højkvalitets-eksempel parseren kan
+    # lære af (samme besked, korrekt tolkning).
+    store.add_parse_example(item["source_text"], llm.compact_example(strong))
     # 'corrected' (ikke 'done') så korrektionsraten kan udledes af ægte data
     # fremadrettet; list_pending_reviews ser kun på 'pending', så adfærden
     # er uændret. Markeres først efter at opdateringen lykkedes.

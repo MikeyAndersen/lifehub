@@ -17,7 +17,7 @@ import httpx
 from dateutil import parser as dtparse
 from pydantic import ValidationError
 
-from . import config, dates
+from . import config, dates, store
 from .models import AulaItem, TriageItem
 
 INTENT_SCHEMA = {
@@ -87,6 +87,39 @@ Eksempler (NU = tirsdag 2026-06-30T18:00). Bemærk de kontrasterende par:
 """
 
 
+def compact_example(parsed: dict) -> dict:
+    """Skema-formet projektion af et VALIDERET resultat, til data-flywheelet.
+    Confidence sættes højt: eksemplet er bekræftet/rettet, så det lærer
+    parseren at være sikker på netop denne formulering."""
+    return {
+        "intent": parsed.get("intent"),
+        "title": parsed.get("title"),
+        "start": parsed.get("start"),
+        "end": parsed.get("end"),
+        "all_day": bool(parsed.get("all_day")),
+        "due": parsed.get("due"),
+        "amount_dkk": parsed.get("amount_dkk"),
+        "items": parsed.get("items") or [],
+        "notes": parsed.get("notes"),
+        "confidence": 0.95,
+    }
+
+
+def _system_prompt_with_examples() -> str:
+    """SYSTEM_PROMPT + de nyeste af familiens egne bekræftede/rettede beskeder
+    som dynamiske few-shot-eksempler (data-flywheel). Tom liste → uændret prompt."""
+    try:
+        examples = store.recent_parse_examples(config.PARSE_DYNAMIC_EXAMPLES)
+    except Exception:
+        examples = []
+    if not examples:
+        return SYSTEM_PROMPT
+    lines = "\n".join(f'"{e["source_text"]}" ->\n{json.dumps(e["result"], ensure_ascii=False)}'
+                      for e in examples)
+    return (SYSTEM_PROMPT + "\n\nEksempler fra jeres egne tidligere beskeder "
+            "(samme mønster og format — de er rettet/bekræftet af brugeren):\n" + lines)
+
+
 async def _chat(messages: list[dict], schema: dict | None = None, *,
                 base_url: str | None = None, model: str | None = None) -> str:
     # Default (no base_url/model) targets the local CPU model and keeps it
@@ -149,7 +182,8 @@ async def parse_message(text: str, *, base_url: str | None = None,
         f"(dansk tid). Besked: {text}"
     )
     raw = await _chat(
-        [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user}],
+        [{"role": "system", "content": _system_prompt_with_examples()},
+         {"role": "user", "content": user}],
         schema=INTENT_SCHEMA, base_url=base_url, model=model,
     )
     try:

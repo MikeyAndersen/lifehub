@@ -28,6 +28,9 @@ EVENT_CONFIDENCE_PENALTY = float(os.getenv("EVENT_CONFIDENCE_PENALTY", "0.1"))
 # med det samme), med fallback til den lokale 7b. Default fra, fordi 32b'eren
 # har keep_alive=0 og betaler kold opstart pr. kald → langsommere svar.
 PARSE_PREFER_GPU = os.getenv("PARSE_PREFER_GPU", "false").lower() == "true"
+# Data-flywheel: antal af jeres egne bekræftede/rettede beskeder der fodres
+# tilbage som dynamiske few-shot-eksempler i parseren. 0 slår det fra.
+PARSE_DYNAMIC_EXAMPLES = int(os.getenv("PARSE_DYNAMIC_EXAMPLES", "4"))
 
 # Dual-pass quality review. Empty STRONG_OLLAMA_URL disables the feature
 # entirely: no queueing, no extra calls, behaviour exactly as before.

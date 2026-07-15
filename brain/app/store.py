@@ -37,6 +37,12 @@ CREATE TABLE IF NOT EXISTS sys_events (
 );
 CREATE INDEX IF NOT EXISTS idx_sys_events_ts ON sys_events(ts);
 CREATE INDEX IF NOT EXISTS idx_sys_events_kind ON sys_events(kind, ts);
+CREATE TABLE IF NOT EXISTS parse_examples (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_text TEXT NOT NULL,
+    result_json TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS aula_messages (
     message_id TEXT PRIMARY KEY,
     thread_id TEXT, from_addr TEXT, subject TEXT,
@@ -264,6 +270,42 @@ def message_count(stream: str, since_iso: str) -> int:
             "SELECT COUNT(*) FROM aula_messages WHERE stream=? AND received_at>=?",
             (stream, since_iso)).fetchone()
     return row[0]
+
+
+# ── Data-flywheel: parseren lærer af egne rettede/bekræftede beskeder ──
+# Kun bruger-BEKRÆFTEDE (confirm-Opret) eller 32b-KORRIGEREDE resultater
+# logges her — aldrig et ubekræftet straks-gæt, der kan være tavst forkert.
+# recent_parse_examples fodres tilbage som few-shot i llm.parse_message.
+_PARSE_EXAMPLES_CAP = 200
+
+
+def add_parse_example(source_text: str, result: dict) -> None:
+    """Fire-and-forget. Dedupe pr. source_text (nyeste vinder) og beskær til cap."""
+    st = (source_text or "").strip()
+    if not st:
+        return
+    try:
+        with _db() as con:
+            con.execute("DELETE FROM parse_examples WHERE source_text=?", (st,))
+            con.execute(
+                "INSERT INTO parse_examples(source_text,result_json,created_at) VALUES(?,?,?)",
+                (st, json.dumps(result, ensure_ascii=False), datetime_now_iso()))
+            con.execute(
+                "DELETE FROM parse_examples WHERE id NOT IN "
+                "(SELECT id FROM parse_examples ORDER BY id DESC LIMIT ?)",
+                (_PARSE_EXAMPLES_CAP,))
+    except sqlite3.Error:
+        pass
+
+
+def recent_parse_examples(limit: int = 4) -> list[dict]:
+    if limit <= 0:
+        return []
+    with _db() as con:
+        rows = con.execute(
+            "SELECT source_text, result_json FROM parse_examples ORDER BY id DESC LIMIT ?",
+            (limit,)).fetchall()
+    return [{"source_text": r[0], "result": json.loads(r[1])} for r in rows]
 
 
 # ── Key/value (gmail history cursor, aula edit-reply mapping) ──────

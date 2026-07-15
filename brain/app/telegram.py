@@ -400,6 +400,10 @@ async def handle_update(update: dict) -> None:
         if action == "ok":
             result, created_ref = await _execute(parsed)
             _maybe_enqueue(parsed, chat_id, created_ref)
+            # Data-flywheel: en bekræftet (evt. type-skiftet) besked er et
+            # valideret eksempel parseren kan lære af fremadrettet.
+            store.add_parse_example(parsed.get("source_text", ""),
+                                    llm.compact_example(parsed))
             await _edit(f"{_describe(parsed)}\n\n{result}")
         else:
             await _edit("Droppet 👍")
