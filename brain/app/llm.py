@@ -432,11 +432,38 @@ async def classify_inbox_mail(subject: str, from_addr: str, body: str,
     raise AulaParseError(str(last_err))
 
 
+BRIEF_SYSTEM_PROMPT = """Du skriver den daglige morgenbriefing til en dansk familie. \
+Du får dagens data som JSON og skriver en kort, varm briefing PÅ DANSK.
+
+Regler:
+- Skriv naturligt, mundret dansk. INGEN anglicismer, ingen engelske ord, ingen \
+oversætter-agtige vendinger. Det skal lyde som en dansk forælder, ikke en maskine.
+- Fast struktur, i denne rækkefølge, og medtag KUN linjer hvor der findes data:
+  1. Én kort åbningslinje med dato (og gerne vejret hvis det er der).
+  2. Kalender: dagens aftaler med klokkeslæt, én sætning.
+  3. Opgaver: det vigtigste at huske, én sætning.
+  4. Fødselsdage hvis der er nogen.
+  5. Én kort, venlig afslutning.
+- Maks 6 linjer i alt. Højst 2 emojis i hele briefen.
+- Opfind ALDRIG detaljer. Er et felt tomt eller mangler, så spring linjen over — \
+gæt aldrig på aftaler, vejr eller opgaver der ikke står i dataene.
+- Skriv kun selve briefen, ingen indledning som "Her er briefen".
+
+Eksempel.
+Data: {"dato":"fredag 17. juli","kalender_i_dag":[{"title":"Tandlæge","start":"2026-07-17T14:00"}],"opgaver":[{"title":"Køb kaffe"}],"foedselsdage":[],"vejr":{"now_c":19,"code":3}}
+Briefing:
+God morgen! Fredag den 17. juli, og det bliver en lun dag omkring 19 grader ☀️
+I dag er der tandlæge kl. 14.00 — husk at komme afsted i god tid.
+Og lige en huskeseddel: der skal købes kaffe.
+Ha' en dejlig dag!"""
+
+
 async def compose_brief(context: dict) -> str:
-    """Morning brief: hand the model today's data, get 4-6 friendly Danish lines back."""
-    prompt = (
-        "Skriv dagens korte morgenbriefing til familien på dansk. Maks 6 linjer, "
-        "venlig og konkret, ingen emojis-overload (max 2). Nævn kun det der er i dataene. "
-        "Data:\n" + json.dumps(context, ensure_ascii=False, default=str)
-    )
-    return (await _chat([{"role": "user", "content": prompt}])).strip()
+    """Morning brief: hand the model today's data, get a short, friendly Danish
+    brief back. The system prompt pins structure + tone with one Danish few-shot
+    example — a bare 'skriv en brief' instruction left the 7B model writing stiff,
+    translated-sounding Danish."""
+    user = ("Skriv dagens morgenbriefing ud fra disse data:\n"
+            + json.dumps(context, ensure_ascii=False, default=str))
+    return (await _chat([{"role": "system", "content": BRIEF_SYSTEM_PROMPT},
+                         {"role": "user", "content": user}])).strip()

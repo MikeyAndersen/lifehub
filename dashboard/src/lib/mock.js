@@ -33,7 +33,11 @@ function mockWeek() {
     const d = new Date(mon); d.setDate(mon.getDate() + i);
     const date = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
     const status = !name ? 'empty' : d < today ? 'cooked' : 'planned';
-    return { date, weekday: wd[i], dish_id: name ? i + 1 : null, dish_name: name, status, note: null };
+    // Nogle retter har en bundet opskrift (recipe_id), andre ikke — så dev-preview
+    // viser både klikbare og rene navne. Retter uden opskrift: null.
+    const recipe_id = name && i % 2 === 0 ? i + 1 : null;
+    return { date, weekday: wd[i], dish_id: name ? i + 1 : null, dish_name: name,
+             recipe_id, status, note: null };
   });
 }
 
