@@ -512,15 +512,38 @@ body {
 .wp-dish { font-size: var(--lh-fs-body); color: var(--lh-text); min-width: 0; }
 .wp-row.today .wp-dish { font-weight: 500; }
 .wp-dish.empty { color: var(--lh-text-4); }
-/* Ret med bundet opskrift: klikbar, men diskret — signal-farvet med
-   underline-affordance, så den ikke skriger mod resten af ugeplanen. */
+/* Ret med bundet opskrift: klikbar, men diskret — signal-farvet, med et
+   kogebogs-ikon som markør. Kun navnet får underline-affordance (ikke ikonet),
+   så den ikke skriger mod resten af ugeplanen. */
 .wp-recipe {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
   color: var(--lh-signal);
+  text-decoration: none;
+}
+.wp-dish-name {
+  min-width: 0;
   text-decoration: underline;
   text-decoration-color: color-mix(in srgb, var(--lh-signal) 40%, transparent);
   text-underline-offset: 2px;
 }
-.wp-recipe:hover { text-decoration-color: var(--lh-signal); }
+.wp-recipe:hover .wp-dish-name { text-decoration-color: var(--lh-signal); }
+.wp-recipe-icon { flex: none; opacity: 0.75; }
+.wp-recipe:hover .wp-recipe-icon { opacity: 1; }
+/* Ugeplan-titlen linker til madplan-forsiden; arven holder label-farven, kun
+   hover + pilen røber at den er klikbar. */
+.wp-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: inherit;
+  text-decoration: none;
+}
+.wp-home:hover { color: var(--lh-signal); }
+.wp-home-arrow { opacity: 0.5; transition: opacity 120ms ease; }
+.wp-home:hover .wp-home-arrow { opacity: 1; }
 .wp-check {
   font-family: var(--lh-font-mono);
   font-size: 12px;
