@@ -82,6 +82,21 @@ async def refresh_beholdning() -> None:
             log.exception("beholdning refresh failed")
 
 
+# Indkøbslisten (Warm Paper §backend 1): åbne tasks i Vikunja-indkøbsprojektet.
+SHOPPING_STALE_S = 30 * 60
+
+
+async def refresh_shopping() -> None:
+    try:
+        inv = await vikunja.shopping_inventory()
+        store.set_cache("shopping", [
+            {"id": i["vikunja_task_id"], "title": i["raw_title"]}
+            for i in inv if i["bucket"] == "open"
+        ])
+    except Exception:
+        log.exception("shopping refresh failed")
+
+
 async def ensure_fresh_madplan() -> None:
     """Kaldes fire-and-forget ved dashboard-load: refresh hvis cachen mangler
     eller er ældre end stale-grænsen (§3.3: 'poll ... + ved dashboard-load')."""
@@ -243,6 +258,15 @@ def build(viewer_email: str | None, ambient: bool = False) -> dict:
             "items": items,
             "stale": (time.time() - updated_at) > config.MADPLAN_STALE_MINUTES * 60,
         }
+    # Indkøb (Warm Paper): kun på interaktive flader — ambient får den ikke.
+    if not ambient:
+        shop = store.get_cache_meta("shopping")
+        if shop is not None:
+            items, updated_at = shop
+            doc["shopping"] = {
+                "items": items,
+                "stale": (time.time() - updated_at) > SHOPPING_STALE_S,
+            }
     if config.GMAIL_ENABLED:
         try:
             doc["aula"] = aula.feed(days=7)

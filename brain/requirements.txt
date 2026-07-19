@@ -8,3 +8,4 @@ google-auth>=2.34
 google-auth-oauthlib>=1.2
 python-dateutil>=2.9
 beautifulsoup4>=4.12
+pytest>=8.0
