@@ -40,7 +40,8 @@ function InboxRow({ item, onAction, failed }) {
                          background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
           {quiet.label}
         </button>
-        {failed && <div className="paper-mono" style={{ fontSize: 12, color: 'var(--warn)' }}>
+        {failed && <div className="paper-mono" style={{ fontSize: 12, color: 'var(--warn)',
+             textTransform: 'none', letterSpacing: 0 }}>
           kunne ikke gennemføres</div>}
       </div>
     </div>
@@ -52,6 +53,7 @@ export default function PaperPanel() {
   const [status, setStatus] = useState(null);
   const [hidden, setHidden] = useState(new Set());   // optimistisk skjulte ids
   const [failed, setFailed] = useState(new Set());   // ids med fejlet handling
+  const [lettersFailed, setLettersFailed] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -75,8 +77,10 @@ export default function PaperPanel() {
   };
   const actNewsletters = (ids) => {
     setHidden((h) => new Set([...h, ...ids]));
+    setLettersFailed(false);
     archiveNewsletters().catch(() => {
       setHidden((h) => { const n = new Set(h); ids.forEach((i) => n.delete(i)); return n; });
+      setLettersFailed(true);
     });
   };
 
@@ -84,6 +88,7 @@ export default function PaperPanel() {
   const inbox = actionable.filter((i) => !hidden.has(i.id));
   const letters = newsletters.filter((i) => !hidden.has(i.id));
   const withDue = (doc.tasks || []).filter((t) => t.due);
+  withDue.sort((a, b) => a.due.localeCompare(b.due));
   const noDue = (doc.tasks || []).filter((t) => !t.due);
   const aulaRows = [...(doc.aula?.recent || []), ...(doc.aula?.info || [])].slice(0, 3);
   const dateLine = now.toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -98,7 +103,8 @@ export default function PaperPanel() {
           <div style={{ fontSize: 26, fontWeight: 700 }}>LifeHub</div>
           <div className="paper-mono" style={{ fontSize: 14, letterSpacing: '.14em',
                color: 'var(--muted)' }}>HANDLINGSPANEL</div>
-          {error && <div className="paper-mono" style={{ fontSize: 13, color: 'var(--faint)' }}>
+          {error && <div className="paper-mono" style={{ fontSize: 13, color: 'var(--faint)',
+               textTransform: 'none', letterSpacing: 0 }}>
             opdateret {doc.generated_at?.slice(11, 16)} · offline</div>}
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 22 }}>
@@ -169,6 +175,9 @@ export default function PaperPanel() {
                                    fontFamily: 'inherit' }}>
                     Arkivér alle
                   </button>
+                  {lettersFailed && <div className="paper-mono" style={{ fontSize: 12, color: 'var(--warn)', textTransform: 'none', letterSpacing: 0, marginTop: 8 }}>
+  kunne ikke gennemføres
+</div>}
                 </div>
               </div>
             )}
