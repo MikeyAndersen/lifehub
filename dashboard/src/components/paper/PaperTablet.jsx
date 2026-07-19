@@ -16,7 +16,7 @@ const Label = ({ children, accent, right }) => (
 
 function TaskRow({ task, now, last }) {
   const due = task.due && dueLine(task.due, now);
-  const urgent = due && due.startsWith('i dag');
+  const urgent = due && (due.startsWith('i dag') || due === 'forfalden');
   return (
     <div style={{ display: 'flex', gap: 26, alignItems: 'center', padding: '22px 0',
                   borderBottom: last ? 'none' : '1px solid var(--hairline)' }}>
@@ -24,7 +24,7 @@ function TaskRow({ task, now, last }) {
         border: `3px solid ${urgent ? 'var(--accent)' : 'var(--circle-idle)'}` }} />
       <div style={{ fontSize: 36, fontWeight: 500 }}>{stripEmoji(task.title)}</div>
       {urgent && <div className="paper-mono" style={{ fontSize: 22, color: 'var(--accent)', marginLeft: 'auto' }}>
-        inden {task.due.slice(11, 16)}
+        {due === 'forfalden' ? 'forfalden' : `inden ${task.due.slice(11, 16)}`}
       </div>}
     </div>
   );
@@ -75,9 +75,15 @@ export default function PaperTablet() {
           {w && <div style={{ fontSize: 62, fontWeight: 400, color: 'var(--muted)' }}>
             {Math.round(w.now_c)}°</div>}
         </div>
-        <div style={{ fontSize: 38, color: 'var(--muted)', marginTop: 14 }}>
-          {error ? `opdateret ${doc.generated_at?.slice(11, 16)} · offline` : weatherLine}
-        </div>
+        {error ? (
+          <div className="paper-mono" style={{ fontSize: 24, color: 'var(--faint)', marginTop: 14 }}>
+            opdateret {doc.generated_at?.slice(11, 16)} · offline
+          </div>
+        ) : (
+          <div style={{ fontSize: 38, color: 'var(--muted)', marginTop: 14 }}>
+            {weatherLine}
+          </div>
+        )}
         <div style={{ marginTop: 'auto' }}>
           <div className="paper-mono" style={{ fontSize: 24, color: 'var(--accent)' }}>
             {night ? 'I MORGEN' : 'I DAG'}
