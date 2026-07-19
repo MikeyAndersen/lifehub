@@ -494,6 +494,17 @@ def aula_expired_since(since_iso: str, stream: str = "aula") -> int:
     return row[0]
 
 
+def aula_archive_newsletters(resolved_at: str, stream: str = "inbox") -> int:
+    """Panelets 'Arkivér alle' på nyhedsbreve: kun pending, kun nyhedsbrev."""
+    with _db() as con:
+        cur = con.execute(
+            "UPDATE aula_items SET status='rejected', resolved_at=? "
+            "WHERE status='pending' AND stream=? AND sender_kind='nyhedsbrev'",
+            (resolved_at, stream),
+        )
+        return cur.rowcount
+
+
 def aula_feed(since_iso: str, today_iso: str, stream: str = "aula") -> dict:
     """Dashboard block: info items + recent proposals/autos with status."""
     with _db() as con:

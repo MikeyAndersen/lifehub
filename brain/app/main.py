@@ -4,12 +4,14 @@ from __future__ import annotations
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 
-from . import ambient_stats, aula, config, dashboard, review, store, telegram, triage, vikunja
+from . import ambient_stats, aula, config, dashboard, post_actions, review, store, telegram, triage, vikunja
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("lifehub")
@@ -185,6 +187,33 @@ async def api_post_poll() -> dict:
     if not config.TRIAGE_ENABLED:
         raise HTTPException(status_code=503, detail="TRIAGE_ENABLED=false")
     return await poll_inbox()
+
+
+@app.post("/api/post/{item_id}/action")
+async def api_post_action(item_id: int, request: Request) -> dict:
+    """Warm Paper-panelets pille-handlinger. Admin-gated som brief/regenerate;
+    semantikken ejes af aula.approve_item/reject-flowet (post_actions)."""
+    email = _viewer_email(request)
+    if not email or email.lower() not in config.ADMIN_EMAILS:
+        raise HTTPException(status_code=403)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    action = body.get("action") if isinstance(body, dict) else None
+    try:
+        return await post_actions.apply(item_id, action or "")
+    except post_actions.ActionError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+
+@app.post("/api/post/archive-newsletters")
+async def api_post_archive_newsletters(request: Request) -> dict:
+    email = _viewer_email(request)
+    if not email or email.lower() not in config.ADMIN_EMAILS:
+        raise HTTPException(status_code=403)
+    now = datetime.now(ZoneInfo(config.TZ)).isoformat(timespec="seconds")
+    return {"ok": True, "archived": store.aula_archive_newsletters(now)}
 
 
 @app.post("/api/tasks/{task_id}/done")
