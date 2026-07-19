@@ -11,7 +11,8 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 
-from . import ambient_stats, aula, config, dashboard, post_actions, review, store, telegram, triage, vikunja
+from . import (ambient_stats, aula, config, dashboard, panel_status, post_actions,
+               review, store, telegram, triage, vikunja)
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("lifehub")
@@ -261,3 +262,13 @@ async def regenerate_brief_now(request: Request) -> dict:
         raise HTTPException(status_code=503,
                             detail="Kunne ikke generere brief (LLM utilgængelig?)")
     return {"ok": True, "brief": store.get_cache("brief")}
+
+
+@app.get("/api/panel/status")
+async def api_panel_status(request: Request) -> dict:
+    """DRIFT-footer til Warm Paper-panelet. Admin-gated: driftsdata er ufarligt
+    men panelet er en admin-flade, så samme regel som resten."""
+    email = _viewer_email(request)
+    if not email or email.lower() not in config.ADMIN_EMAILS:
+        raise HTTPException(status_code=403)
+    return await panel_status.build()

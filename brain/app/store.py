@@ -273,6 +273,16 @@ def message_count(stream: str, since_iso: str) -> int:
     return row[0]
 
 
+def last_message_at(stream: str) -> str | None:
+    """Seneste modtagne mail i en stream — DRIFT-footerens sync-tidsstempel."""
+    with _db() as con:
+        row = con.execute(
+            "SELECT MAX(received_at) FROM aula_messages WHERE stream=?",
+            (stream,),
+        ).fetchone()
+    return row[0]
+
+
 # ── Data-flywheel: parseren lærer af egne rettede/bekræftede beskeder ──
 # Kun bruger-BEKRÆFTEDE (confirm-Opret) eller 32b-KORRIGEREDE resultater
 # logges her — aldrig et ubekræftet straks-gæt, der kan være tavst forkert.
