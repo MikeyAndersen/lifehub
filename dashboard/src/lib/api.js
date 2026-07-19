@@ -74,3 +74,38 @@ export async function setTaskDone(id, done = true) {
   if (!res.ok) throw new Error(`API ${res.status}`);
   return res.json();
 }
+
+/** DRIFT-footer til /paper/panel. Måler selv svartiden (brain-rækken). */
+export async function fetchPanelStatus() {
+  const t0 = performance.now();
+  try {
+    const res = await fetch(`${BASE}/api/panel/status`);
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    const doc = await res.json();
+    return { ...doc, latency_ms: Math.round(performance.now() - t0) };
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      const { mockPanelStatus } = await import('./mock.js');
+      return mockPanelStatus();
+    }
+    throw err;
+  }
+}
+
+/** Panel-pille: godkend/arkivér/udsæt et post-emne. Kaster ved fejl. */
+export async function postTriageAction(id, action) {
+  const res = await fetch(`${BASE}/api/post/${id}/action`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action }),
+  });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  return res.json();
+}
+
+/** Panel: arkivér alle pending nyhedsbreve. Kaster ved fejl. */
+export async function archiveNewsletters() {
+  const res = await fetch(`${BASE}/api/post/archive-newsletters`, { method: 'POST' });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  return res.json();
+}

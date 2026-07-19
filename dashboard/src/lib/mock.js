@@ -168,15 +168,25 @@ export function mockDocument(ambient = false) {
     },
   };
   if (!ambient) {
+    // Warm Paper tablet: indkøbs-pills (åbne tasks i Vikunja-indkøbsprojektet).
+    doc.shopping = {
+      stale: false,
+      items: [
+        { id: 41, title: 'Mælk' }, { id: 42, title: 'Rugbrød' },
+        { id: 43, title: 'Æg' }, { id: 44, title: 'Bananer' },
+        { id: 45, title: 'Kaffe' }, { id: 46, title: 'Fødselsdagsgave 🎁' },
+      ],
+    };
     // Post-triage er admin-only som finans — aldrig i ambient, heller ikke i mock.
     doc.post = {
       new_today: 3,
       info: [
-        { title: 'Årsopgørelse klar i TastSelv', summary: 'Skat: din årsopgørelse for 2025 er klar.', created_at: at(0, 7, 40), status: 'pending', importance: 'high', sender_kind: 'kommune' },
+        { id: 21, title: 'Årsopgørelse klar i TastSelv', summary: 'Skat: din årsopgørelse for 2025 er klar.', created_at: at(0, 7, 40), status: 'pending', importance: 'high', sender_kind: 'kommune', deferred_until: null },
+        { id: 24, title: 'Ugens tilbud fra Nemlig', summary: 'Nyhedsbrev.', created_at: at(0, 6, 0), status: 'pending', importance: 'low', sender_kind: 'nyhedsbrev', deferred_until: null },
       ],
       recent: [
-        { title: 'Forny indboforsikring', intent: 'handling', status: 'pending', date: null, time: null, created_at: at(0, 8, 10), deadline: day(5) + 'T23:59', importance: 'high', sender_kind: 'forsikring' },
-        { title: 'Bekræft tandlægetid', intent: 'handling', status: 'approved', date: null, time: null, created_at: at(-1, 9, 0), deadline: day(2) + 'T12:00', importance: 'normal', sender_kind: 'sundhed' },
+        { id: 22, title: 'Forny indboforsikring', intent: 'handling', status: 'pending', date: null, time: null, created_at: at(0, 8, 10), deadline: day(5) + 'T23:59', importance: 'high', sender_kind: 'forsikring', deferred_until: null },
+        { id: 23, title: 'Bekræft tandlægetid', intent: 'handling', status: 'approved', date: null, time: null, created_at: at(-1, 9, 0), deadline: day(2) + 'T12:00', importance: 'normal', sender_kind: 'sundhed', deferred_until: null },
       ],
     };
     // Finans må ALDRIG med i ambient — heller ikke i mock.
@@ -194,4 +204,21 @@ export function mockDocument(ambient = false) {
     };
   }
   return doc;
+}
+
+/* Mock til /paper/panel's DRIFT-footer — formen matcher panel_status.build(). */
+export function mockPanelStatus() {
+  return {
+    generated_at: new Date().toISOString(),
+    latency_ms: 42,
+    services: [
+      { name: 'vikunja', state: 'ok', detail: 'sync 14:28' },
+      { name: 'kalender', state: 'ok', detail: 'sync 14:30' },
+      { name: 'vejr', state: 'ok', detail: 'sync 14:00' },
+      { name: 'madplan', state: 'ok', detail: 'sync 13:45' },
+      { name: 'gmail-triage', state: 'ok', detail: 'seneste 14:25' },
+      { name: 'aula', state: 'warn', detail: 'seneste 09:12' },
+      { name: 'ollama', state: 'ok', detail: 'qwen2.5:7b-instruct' },
+    ],
+  };
 }
