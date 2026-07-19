@@ -154,5 +154,16 @@ def collect_brief_digest() -> tuple[list[str], int]:
 
 def feed(days: int = 7) -> dict:
     now = datetime.now(_tz())
-    return store.aula_feed((now - timedelta(days=days)).isoformat(timespec="seconds"),
-                           now.date().isoformat(), stream=_STREAM)
+    doc = store.aula_feed((now - timedelta(days=days)).isoformat(timespec="seconds"),
+                          now.date().isoformat(), stream=_STREAM)
+    # 'Senere' i panelet: pending emner med deferred_until i fremtiden skjules
+    # (også i space-temaets Post-widget — udsat betyder udsat overalt).
+    now_iso = now.isoformat(timespec="seconds")
+
+    def visible(row: dict) -> bool:
+        return not (row["status"] == "pending" and row.get("deferred_until")
+                    and row["deferred_until"] > now_iso)
+
+    doc["info"] = [r for r in doc["info"] if visible(r)]
+    doc["recent"] = [r for r in doc["recent"] if visible(r)]
+    return doc

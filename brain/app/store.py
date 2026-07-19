@@ -72,6 +72,7 @@ _MIGRATIONS = (
     "ALTER TABLE aula_items ADD COLUMN stream TEXT NOT NULL DEFAULT 'aula'",
     "ALTER TABLE aula_items ADD COLUMN importance TEXT",
     "ALTER TABLE aula_items ADD COLUMN sender_kind TEXT",
+    "ALTER TABLE aula_items ADD COLUMN deferred_until TEXT",
 )
 
 
@@ -342,7 +343,7 @@ _MSG_COLS = ("message_id", "thread_id", "from_addr", "subject", "mail_date",
 _ITEM_COLS = ("id", "message_id", "intent", "title", "summary", "date", "time",
               "all_day", "deadline", "confidence", "ambiguity_flags", "status",
               "gcal_event_id", "vikunja_task_id", "created_at", "resolved_at",
-              "stream", "importance", "sender_kind")
+              "stream", "importance", "sender_kind", "deferred_until")
 
 
 def _msg_row(r) -> dict:
@@ -437,14 +438,17 @@ def aula_get_item(item_id: int) -> dict | None:
 def aula_update_item(item_id: int, *, status: str,
                      gcal_event_id: str | None = None,
                      vikunja_task_id: int | None = None,
-                     resolved_at: str | None = None) -> None:
+                     resolved_at: str | None = None,
+                     deferred_until: str | None = None) -> None:
     with _db() as con:
         con.execute(
             "UPDATE aula_items SET status=?, "
             "gcal_event_id=COALESCE(?, gcal_event_id), "
             "vikunja_task_id=COALESCE(?, vikunja_task_id), "
-            "resolved_at=COALESCE(?, resolved_at) WHERE id=?",
-            (status, gcal_event_id, vikunja_task_id, resolved_at, item_id),
+            "resolved_at=COALESCE(?, resolved_at), "
+            "deferred_until=COALESCE(?, deferred_until) WHERE id=?",
+            (status, gcal_event_id, vikunja_task_id, resolved_at,
+             deferred_until, item_id),
         )
 
 
@@ -494,14 +498,15 @@ def aula_feed(since_iso: str, today_iso: str, stream: str = "aula") -> dict:
     """Dashboard block: info items + recent proposals/autos with status."""
     with _db() as con:
         info = con.execute(
-            "SELECT title, summary, created_at, status, importance, sender_kind "
+            "SELECT id, title, summary, created_at, status, importance, "
+            "sender_kind, deferred_until "
             "FROM aula_items WHERE intent='info' AND created_at >= ? AND stream=? "
             "ORDER BY created_at DESC",
             (since_iso, stream),
         ).fetchall()
         recent = con.execute(
-            "SELECT title, intent, status, date, time, created_at, deadline, "
-            "importance, sender_kind FROM aula_items "
+            "SELECT id, title, intent, status, date, time, created_at, deadline, "
+            "importance, sender_kind, deferred_until FROM aula_items "
             "WHERE intent IN ('event','handling') AND created_at >= ? AND stream=? "
             "ORDER BY created_at DESC",
             (since_iso, stream),
@@ -512,12 +517,14 @@ def aula_feed(since_iso: str, today_iso: str, stream: str = "aula") -> dict:
             (today_iso, stream),
         ).fetchone()[0]
     return {
-        "info": [{"title": r[0], "summary": r[1], "created_at": r[2],
-                  "status": r[3], "importance": r[4], "sender_kind": r[5]}
+        "info": [{"id": r[0], "title": r[1], "summary": r[2], "created_at": r[3],
+                  "status": r[4], "importance": r[5], "sender_kind": r[6],
+                  "deferred_until": r[7]}
                  for r in info],
-        "recent": [{"title": r[0], "intent": r[1], "status": r[2], "date": r[3],
-                    "time": r[4], "created_at": r[5], "deadline": r[6],
-                    "importance": r[7], "sender_kind": r[8]} for r in recent],
+        "recent": [{"id": r[0], "title": r[1], "intent": r[2], "status": r[3],
+                    "date": r[4], "time": r[5], "created_at": r[6],
+                    "deadline": r[7], "importance": r[8], "sender_kind": r[9],
+                    "deferred_until": r[10]} for r in recent],
         "new_today": new_today,
     }
 
