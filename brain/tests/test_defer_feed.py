@@ -37,3 +37,32 @@ def test_expired_defer_reappears(db):
     _insert(db, "Tilbage igen", deferred_until=yesterday.isoformat())
     feed = triage.feed(days=7)
     assert any(r["title"] == "Tilbage igen" for r in feed["recent"])
+
+
+# ── Final-review-fix: udsatte info-emner må ikke spises af 06:30-digesten ──
+# collect_brief_digest henter via store.aula_pending_info(), som IKKE kigger
+# på deferred_until — ved 06:30 er selve udsættelsen altid udløbet, så et
+# tidsfilter der kun skjuler "fremtidig" udsættelse ville ikke hjælpe her.
+# Et sat deferred_until markerer i stedet permanent panel-ejerskab: brugeren
+# trykkede 'Senere', og emnet skal blive i panelet, aldrig i digesten.
+
+def test_deferred_info_item_excluded_from_digest(db):
+    past = (datetime.now() - timedelta(days=1)).replace(microsecond=0).isoformat()
+    deferred_id = _insert(db, "Udsat info-emne", intent="info",
+                          deferred_until=past)
+    never_deferred_id = _insert(db, "Aldrig udsat info-emne", intent="info")
+
+    result_ids = {i["id"] for i in db.aula_pending_info(stream="inbox")}
+
+    assert deferred_id not in result_ids
+    assert never_deferred_id in result_ids
+
+
+def test_deferred_info_item_still_reappears_in_panel_feed(db):
+    past = (datetime.now() - timedelta(days=1)).replace(microsecond=0).isoformat()
+    deferred_id = _insert(db, "Udsat info-emne dukker op igen", intent="info",
+                          deferred_until=past)
+
+    feed = triage.feed(days=7)
+
+    assert any(r["id"] == deferred_id for r in feed["info"])

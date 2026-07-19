@@ -7,12 +7,13 @@ import pytest
 from app import post_actions
 
 
-def _insert(store, *, intent="handling", sender_kind="andet", status=None):
+def _insert(store, *, intent="handling", sender_kind="andet", status=None,
+            stream="inbox"):
     item_id = store.aula_insert_item(
         "msg-1", intent=intent, title="Betal elregning", summary="s",
         date=None, time=None, all_day=False, deadline=None, confidence=0.9,
         ambiguity_flags=[], created_at=datetime.now().isoformat(timespec="seconds"),
-        stream="inbox", importance="normal", sender_kind=sender_kind)
+        stream=stream, importance="normal", sender_kind=sender_kind)
     if status:
         store.aula_update_item(item_id, status=status)
     return item_id
@@ -58,6 +59,10 @@ async def test_unknown_action_and_wrong_stream_rejected(db):
     assert exc.value.status_code == 422
     with pytest.raises(post_actions.ActionError) as exc:
         await post_actions.apply(999999, "archive")
+    assert exc.value.status_code == 404
+    aula_item_id = _insert(db, stream="aula")
+    with pytest.raises(post_actions.ActionError) as exc:
+        await post_actions.apply(aula_item_id, "archive")
     assert exc.value.status_code == 404
 
 

@@ -476,10 +476,17 @@ def aula_expire_pending(cutoff_iso: str, resolved_at: str) -> int:
 
 
 def aula_pending_info(stream: str = "aula") -> list[dict]:
+    """Digest-input for both streams. Rows a user has panel-deferred ('Senere')
+    have deferred_until set and are excluded permanently — by 06:30 the
+    deferral itself has always lapsed, so checking it here would not help;
+    the presence of the timestamp is what marks the item as panel-owned.
+    Only inbox items ever carry a deferred_until, so this is a no-op for the
+    aula stream."""
     with _db() as con:
         rows = con.execute(
             f"SELECT {','.join(_ITEM_COLS)} FROM aula_items "
             "WHERE intent='info' AND status='pending' AND stream=? "
+            "AND deferred_until IS NULL "
             "ORDER BY created_at",
             (stream,),
         ).fetchall()
