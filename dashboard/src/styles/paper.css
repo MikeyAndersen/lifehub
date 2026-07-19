@@ -1,0 +1,125 @@
+/* ═══════════════════════════════════════════════════════════════
+   Warm Paper — sekundært tema (spec: docs/superpowers/specs/
+   2026-07-19-warm-paper-theme-design.md, mockups 1d–1g).
+   Importeres KUN af /paper/*-siderne. Space-temaet rører aldrig
+   denne fil eller disse fonte.
+   ═══════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: 'Instrument Sans';
+  src: url('/fonts/instrument-sans-400.woff2') format('woff2');
+  font-weight: 400; font-display: swap;
+}
+@font-face {
+  font-family: 'Instrument Sans';
+  src: url('/fonts/instrument-sans-500.woff2') format('woff2');
+  font-weight: 500; font-display: swap;
+}
+@font-face {
+  font-family: 'Instrument Sans';
+  src: url('/fonts/instrument-sans-600.woff2') format('woff2');
+  font-weight: 600; font-display: swap;
+}
+
+.paper-root {
+  /* — dagpalet (mockup 1d/1g) — */
+  --paper-bg: #f4f0e8;          /* ultrawide sætter selv #f1ede4 */
+  --ink: #2a2520;
+  --ink-2: #55493d;
+  --muted: #7a7267;
+  --faint: #b6ada0;
+  --accent: #b95c38;
+  --accent-dark: #93482c;
+  --accent-tint: rgba(185, 92, 56, .12);
+  --ok: #5c8a5a;
+  --warn: #c9a23c;
+  --hairline: rgba(42, 37, 32, .10);
+  --hairline-strong: rgba(42, 37, 32, .14);
+  --circle-idle: #c9c1b4;       /* opgavecirkler uden hast */
+  --done-fill: #e2dccf;
+  --side-opacity: 1;
+
+  --font-ui: 'Instrument Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  /* Motion (kun wallpaper bruger drift; produktion ≥300 s pr. krydsning —
+     mockuppens 60–90 s er demo). --drift-base kan overstyres via ?drift= . */
+  --drift-base: 320s;
+  --sway-a: 90s;
+  --sway-b: 110s;
+
+  background: var(--paper-bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  width: 100vw; height: 100vh; overflow: hidden;
+  box-sizing: border-box;
+}
+.paper-root *, .paper-root *::before, .paper-root *::after { box-sizing: border-box; }
+
+/* — natpalet (mockup 1e): samme variabler, nye værdier — */
+.paper-root[data-mode="night"] {
+  --paper-bg: #211d19;
+  --ink: #e8e0d3;
+  --ink-2: #bdb2a0;
+  --muted: #8a7e6e;
+  --faint: #5e564a;
+  --accent: #c98a67;
+  --accent-dark: #c98a67;
+  --accent-tint: rgba(201, 138, 103, .14);
+  --hairline: rgba(232, 224, 211, .08);
+  --hairline-strong: rgba(232, 224, 211, .12);
+  --circle-idle: #5e564a;
+  --done-fill: #3a342c;
+  --side-opacity: .75;
+}
+
+/* — fælles byggesten — */
+.paper-mono {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: .16em;
+}
+.paper-clock { font-feature-settings: 'tnum'; font-variant-numeric: tabular-nums; }
+.paper-pill {
+  border: 2px solid var(--hairline-strong);
+  border-radius: 999px;
+  font-weight: 500;
+}
+.paper-badge {
+  font-family: var(--font-mono);
+  background: var(--accent-tint);
+  color: var(--accent-dark);
+  border-radius: 6px;
+  padding: .1em .55em;
+}
+.paper-badge--neutral { background: rgba(42, 37, 32, .07); color: var(--muted); }
+.paper-root[data-mode="night"] .paper-badge--neutral {
+  background: rgba(232, 224, 211, .08);
+}
+.paper-dot { border-radius: 50%; flex: none; }
+
+/* — motion (wallpaper + breathe-prik) — */
+@keyframes lh-drift-a {
+  from { transform: translateX(0); }
+  to   { transform: translateX(5600px); }
+}
+@keyframes lh-drift-b {
+  from { transform: translateX(5600px); }
+  to   { transform: translateX(-1500px); }
+}
+@keyframes lh-sway {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(26px); }
+}
+@keyframes lh-breathe {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paper-root [style*="lh-drift"], .paper-root [style*="lh-sway"],
+  .paper-root [style*="lh-breathe"],
+  .paper-drift, .paper-sway, .paper-breathe {
+    animation: none !important;
+  }
+}
