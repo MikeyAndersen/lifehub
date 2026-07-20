@@ -50,7 +50,7 @@ function InboxRow({ item, onAction, failed }) {
 }
 
 export default function PaperPanel({ dark = false }) {
-  const { doc, error, now } = usePaperData(false);
+  const { doc, error, now } = usePaperData(false, true);
   const [status, setStatus] = useState(null);
   const [hidden, setHidden] = useState(new Set());   // optimistisk skjulte ids
   const [failed, setFailed] = useState(new Set());   // ids med fejlet handling

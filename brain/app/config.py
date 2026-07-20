@@ -77,6 +77,13 @@ AULA_URGENT_HOURS = int(os.getenv("AULA_URGENT_HOURS", "24"))
 TRIAGE_ENABLED = os.getenv("TRIAGE_ENABLED", "false").lower() == "true"
 TRIAGE_LOOKBACK_DAYS = int(os.getenv("TRIAGE_LOOKBACK_DAYS", "3"))
 
+# Warm Paper-panelet (/paper/panel) er admin-only som resten af post-triagen.
+# Slår man dette til, serverer /api/panel/feed + panelets handlinger indbakken
+# UDEN Cloudflare Access-identitet — til en betroet enhed man selv har sat op.
+# ADVARSEL: enhver der kan nå de URL'er (fx på LAN) ser og kan handle på din
+# personlige indbakke. Finans berøres ALDRIG af dette. Default: lukket.
+PANEL_INBOX_OPEN = os.getenv("PANEL_INBOX_OPEN", "false").lower() == "true"
+
 ADMIN_EMAILS = {e.lower() for e in _list("ADMIN_EMAILS")}
 TZ = os.getenv("TZ", "Europe/Copenhagen")
 LATITUDE = float(os.getenv("LATITUDE", "56.15"))

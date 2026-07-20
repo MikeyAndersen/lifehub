@@ -16,6 +16,24 @@ export async function fetchDashboard(ambient = false) {
   }
 }
 
+/** Warm Paper-panelets feed. Som /api/dashboard, men brain inkluderer
+ *  post-triage når PANEL_INBOX_OPEN er slået til (betroet enhed). Finans
+ *  kommer aldrig med. Falder tilbage til mock i dev som fetchDashboard. */
+export async function fetchPanelFeed() {
+  try {
+    const res = await fetch(`${BASE}/api/panel/feed`);
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      const { mockDocument } = await import('./mock.js');
+      console.warn('[LifeHub] /api/panel/feed utilgængelig — MOCK (kun dev).', err);
+      return mockDocument(false);
+    }
+    throw err;
+  }
+}
+
 /** Systemstats til /ambient/orbit (DEL 5). Server-cachet 45 s. */
 export async function fetchAmbientStats() {
   try {

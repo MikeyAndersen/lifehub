@@ -43,8 +43,8 @@ All pages are served from the same origin as the API, so use your deployed base 
 | [`/paper/tablet`](https://lifehub.nova-tech.dk/paper/tablet) | **Warm Paper · tablet** | Secondary warm-paper theme (URL-selected): family dashboard for a docked Pixel Tablet, 2560×1600, with automatic day/night. Pure display. | Never |
 | [`/paper/wallpaper`](https://lifehub.nova-tech.dk/paper/wallpaper) | **Warm Paper · wallpaper** | Ultrawide ambient layer (5120×1440) that sits behind windows — calm drift, next days, weather. Auto day↔night on sunrise/sunset. Pure display. | Never |
 | [`/paper/wallpaper/dark`](https://lifehub.nova-tech.dk/paper/wallpaper/dark) | **Warm Paper · wallpaper (dark)** | Same surface, forced dark palette 24/7 (ignores sunrise/sunset). | Never |
-| [`/paper/panel`](https://lifehub.nova-tech.dk/paper/panel) | **Warm Paper · panel** | Interactive triage panel (1920×1080): approve / archive / defer inbox items, a DRIFT status footer. Auto day↔night. **Admin only.** | Post shown; finance never |
-| [`/paper/panel/dark`](https://lifehub.nova-tech.dk/paper/panel/dark) | **Warm Paper · panel (dark)** | Same panel, forced dark palette 24/7. **Admin only.** | Post shown; finance never |
+| [`/paper/panel`](https://lifehub.nova-tech.dk/paper/panel) | **Warm Paper · panel** | Interactive triage panel (1920×1080): approve / archive / defer inbox items, a DRIFT status footer. Auto day↔night. **Admin only** (or a trusted device via `PANEL_INBOX_OPEN`). | Post shown; finance never |
+| [`/paper/panel/dark`](https://lifehub.nova-tech.dk/paper/panel/dark) | **Warm Paper · panel (dark)** | Same panel, forced dark palette 24/7. **Admin only** (or a trusted device via `PANEL_INBOX_OPEN`). | Post shown; finance never |
 
 From the interactive dashboard, the **“Ambient visning ▾”** menu in the top bar links to
 every surface above.
@@ -67,9 +67,10 @@ Everything under `/api/*` sits behind Cloudflare Access; `/telegram/webhook/*` i
 | `POST /api/aula/poll` | *(test)* Poll the Aula mail stream now |
 | `GET /api/aula/info` | Aula info items + recent proposals/autos |
 | `POST /api/post/poll` | *(test)* Poll the general-inbox triage stream now |
-| `POST /api/post/{id}/action` | *(admin)* Panel action: `approve` / `archive` / `defer` |
-| `POST /api/post/archive-newsletters` | *(admin)* Archive the collapsed newsletter row |
-| `GET /api/panel/status` | *(admin)* DRIFT footer metrics for the panel |
+| `GET /api/panel/feed` | Panel feed — like `/api/dashboard` incl. `post`, but **never** finance; serves the inbox without a login when `PANEL_INBOX_OPEN=true` |
+| `POST /api/post/{id}/action` | *(admin / panel)* Panel action: `approve` / `archive` / `defer` |
+| `POST /api/post/archive-newsletters` | *(admin / panel)* Archive the collapsed newsletter row |
+| `GET /api/panel/status` | *(admin / panel)* DRIFT footer metrics for the panel |
 | `POST /telegram/webhook/{secret}` | Telegram webhook (Access-bypassed) |
 | `POST /api/review/drain` | GPU boot agent — Pass-2 review drain (token-gated) |
 | `GET /api/internal/inventory` | Madplan inventory proxy (token-gated) |

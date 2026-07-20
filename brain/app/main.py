@@ -137,6 +137,18 @@ def _viewer_email(request: Request) -> str | None:
     return request.headers.get("Cf-Access-Authenticated-User-Email")
 
 
+def _is_admin(request: Request) -> bool:
+    email = _viewer_email(request)
+    return bool(email) and email.lower() in config.ADMIN_EMAILS
+
+
+def _panel_authorized(request: Request) -> bool:
+    """Panelets adgang til post-triage (visning + handlinger + DRIFT): admin via
+    Cloudflare Access, ELLER PANEL_INBOX_OPEN (betroet enhed på fx LAN). Finans
+    berøres aldrig af denne sti — den er strengt admin-only i dashboard.build."""
+    return _is_admin(request) or config.PANEL_INBOX_OPEN
+
+
 @app.get("/api/dashboard")
 async def api_dashboard(request: Request) -> dict:
     doc = dashboard.build(_viewer_email(request), ambient=False)
@@ -190,12 +202,24 @@ async def api_post_poll() -> dict:
     return await poll_inbox()
 
 
+@app.get("/api/panel/feed")
+async def api_panel_feed(request: Request) -> dict:
+    """Warm Paper-panelets datastrøm. Som /api/dashboard, men inkluderer
+    post-triage når panelet er åbnet på en betroet enhed (PANEL_INBOX_OPEN) —
+    ellers opfører den sig som en admin-gated dashboard-feed. Finans er ALDRIG
+    med (dashboard.build gater den strengt på Access-identiteten)."""
+    doc = dashboard.build(_viewer_email(request), ambient=False,
+                          panel=config.PANEL_INBOX_OPEN)
+    asyncio.create_task(dashboard.ensure_fresh_madplan())
+    return doc
+
+
 @app.post("/api/post/{item_id}/action")
 async def api_post_action(item_id: int, request: Request) -> dict:
-    """Warm Paper-panelets pille-handlinger. Admin-gated som brief/regenerate;
-    semantikken ejes af aula.approve_item/reject-flowet (post_actions)."""
-    email = _viewer_email(request)
-    if not email or email.lower() not in config.ADMIN_EMAILS:
+    """Warm Paper-panelets pille-handlinger. Admin-gated, ELLER åbent på panelet
+    når PANEL_INBOX_OPEN er slået til; semantikken ejes af aula.approve_item/
+    reject-flowet (post_actions)."""
+    if not _panel_authorized(request):
         raise HTTPException(status_code=403)
     try:
         body = await request.json()
@@ -210,8 +234,7 @@ async def api_post_action(item_id: int, request: Request) -> dict:
 
 @app.post("/api/post/archive-newsletters")
 async def api_post_archive_newsletters(request: Request) -> dict:
-    email = _viewer_email(request)
-    if not email or email.lower() not in config.ADMIN_EMAILS:
+    if not _panel_authorized(request):
         raise HTTPException(status_code=403)
     now = datetime.now(ZoneInfo(config.TZ)).isoformat(timespec="seconds")
     return {"ok": True, "archived": store.aula_archive_newsletters(now)}
@@ -266,9 +289,8 @@ async def regenerate_brief_now(request: Request) -> dict:
 
 @app.get("/api/panel/status")
 async def api_panel_status(request: Request) -> dict:
-    """DRIFT-footer til Warm Paper-panelet. Admin-gated: driftsdata er ufarligt
-    men panelet er en admin-flade, så samme regel som resten."""
-    email = _viewer_email(request)
-    if not email or email.lower() not in config.ADMIN_EMAILS:
+    """DRIFT-footer til Warm Paper-panelet. Admin-gated, ELLER åbent på panelet
+    når PANEL_INBOX_OPEN er slået til (driftsdata er ufarligt — kun metrikker)."""
+    if not _panel_authorized(request):
         raise HTTPException(status_code=403)
     return await panel_status.build()

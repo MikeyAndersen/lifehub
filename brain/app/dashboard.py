@@ -232,7 +232,7 @@ def _current_brief() -> dict | None:
     return brief if brief and brief.get("date") == today else None
 
 
-def build(viewer_email: str | None, ambient: bool = False) -> dict:
+def build(viewer_email: str | None, ambient: bool = False, panel: bool = False) -> dict:
     doc = {
         "generated_at": datetime.now(ZoneInfo(config.TZ)).isoformat(timespec="seconds"),
         "brief": _current_brief(),
@@ -275,13 +275,14 @@ def build(viewer_email: str | None, ambient: bool = False) -> dict:
     is_admin = bool(viewer_email) and viewer_email.lower() in config.ADMIN_EMAILS
     # Signal til frontenden (fx regenerér-brief-knappen); ambient er read-only.
     doc["is_admin"] = is_admin and not ambient
+    # Finans er STRENGT admin-only via Cloudflare Access — aldrig på panelet.
     if is_admin and not ambient:
         doc["finance"] = store.get_cache("finance") or {"status": "not_configured"}
-        # Post-triage er admin-gated som finance: andre enheder (og /ambient)
-        # modtager aldrig blokken.
-        if config.TRIAGE_ENABLED:
-            try:
-                doc["post"] = triage.feed(days=7)
-            except Exception:
-                log.exception("post feed failed")
+    # Post-triage: admin via Access ELLER panel-fladen (PANEL_INBOX_OPEN, betroet
+    # enhed). Aldrig på /ambient. Finans følger bevidst IKKE med her.
+    if (is_admin or panel) and not ambient and config.TRIAGE_ENABLED:
+        try:
+            doc["post"] = triage.feed(days=7)
+        except Exception:
+            log.exception("post feed failed")
     return doc
