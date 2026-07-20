@@ -14,9 +14,10 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from . import config, store
+from . import config, llm, store
 
 _ollama_cache: tuple[float, bool] | None = None
+_strong_cache: tuple[float, bool] | None = None
 
 
 def age_state(age_s: float | None, warn_after_s: float) -> str:
@@ -71,6 +72,21 @@ async def _ollama_row() -> dict:
             "detail": config.OLLAMA_MODEL if ok else "svarer ikke"}
 
 
+async def _strong_row() -> dict:
+    """Den store model (32b) på hoved-pc'en (STRONG_OLLAMA_URL, Pass 2). Tom URL
+    = dual-pass slået fra. Ellers pinges endpointet (2,5 s) og caches 60 s, så en
+    slukket hoved-pc aldrig forsinker panel-polling: warn = pc offline/utilgængelig."""
+    if not config.STRONG_OLLAMA_URL:
+        return {"name": "stor model", "state": "off", "detail": "slået fra"}
+    global _strong_cache
+    now = time.monotonic()
+    if _strong_cache is None or now - _strong_cache[0] > 60:
+        _strong_cache = (now, await llm.is_online(config.STRONG_OLLAMA_URL))
+    online = _strong_cache[1]
+    return {"name": "stor model", "state": "ok" if online else "warn",
+            "detail": config.STRONG_OLLAMA_MODEL if online else "hoved-pc offline"}
+
+
 async def build() -> dict:
     services = [
         _cache_row("vikunja", "tasks", warn_after_s=15 * 60),
@@ -80,6 +96,7 @@ async def build() -> dict:
         _mail_row("gmail-triage", "inbox", config.TRIAGE_ENABLED),
         _mail_row("aula", "aula", config.GMAIL_ENABLED),
         await _ollama_row(),
+        await _strong_row(),
     ]
     return {"generated_at": datetime.now(ZoneInfo(config.TZ)).isoformat(timespec="seconds"),
             "services": services}

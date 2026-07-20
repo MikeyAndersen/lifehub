@@ -21,6 +21,12 @@
   font-weight: 600; font-display: swap;
 }
 
+/* Kun paper-siderne importerer denne fil, så nulstillingen rammer aldrig
+   space-temaet. Uden margin:0 skubber body'ens standard-8px den 100vw/100vh
+   store .paper-root i overløb → en tynd rullebjælke på wallpaper/panel. */
+html, body { margin: 0; padding: 0; }
+body { overflow: hidden; }
+
 .paper-root {
   /* — dagpalet (mockup 1d/1g) — */
   --paper-bg: #f4f0e8;          /* ultrawide sætter selv #f1ede4 */

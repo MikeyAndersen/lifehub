@@ -23,11 +23,13 @@ Gmail: general inbox   ┘        │              Vikunja (tasks + shopping)
 ```
 
 **Privacy model:** Cloudflare Access authenticates every request and injects
-`Cf-Access-Authenticated-User-Email`. The finance block is only *included in the JSON*
-for emails in `ADMIN_EMAILS` — other devices never receive it, and it never appears on
-**any** ambient or paper surface. `/api/ambient` never contains finance **or** mail
-(post/Aula) for anyone, because wallpapers and kitchen tablets are shared surfaces. The
-Warm Paper **panel** is the one interactive display surface and is admin-gated per action.
+`Cf-Access-Authenticated-User-Email`. Two things are gated: **finance** is only *included
+in the JSON* for emails in `ADMIN_EMAILS` and never appears on any ambient or paper
+surface; your **personal inbox** (general post-triage) reaches only an admin identity (or
+the panel via `PANEL_INBOX_OPEN`) and never `/api/ambient`. **Aula** (school messages) is
+treated as *shared family information* and does appear on every surface, including the
+shared ambient/wallpaper/tablet views. The Warm Paper **panel** is the one interactive
+display surface and is admin-gated per action.
 
 ## Surfaces (open these in a browser)
 
@@ -35,14 +37,14 @@ All pages are served from the same origin as the API, so use your deployed base 
 (`https://lifehub.nova-tech.dk`) or, for the shared surfaces, the LAN address via caddy
 (`http://192.168.0.145:8080`, see [docs/OPERATIONS.md](docs/OPERATIONS.md)).
 
-| Link | Surface | What it is | Finance / mail |
+| Link | Surface | What it is | Finance / inbox |
 |---|---|---|---|
-| [`/`](https://lifehub.nova-tech.dk/) | **Dashboard** | Interactive, phone-first per-user view: brief, calendar, tasks, Aula, post, madplan, beholdning, transit. Task checkboxes write back to Vikunja. | Finance shown to `ADMIN_EMAILS` only |
-| [`/ambient`](https://lifehub.nova-tech.dk/ambient) | **Ambient · rum-ur** | Read-only shared surface for Wallpaper Engine / kitchen tablet. Auto-picks ultrawide (5120×1440 with solar-system “wings”) or tablet (1920×1200) by aspect ratio. | Never |
-| [`/ambient/orbit`](https://lifehub.nova-tech.dk/ambient/orbit) | **Ambient · orbit** | Full-screen “observatory”: living planet driven by real sunrise/sunset + weather, event particles, and live system stats (LLM passes, triage counts, prompts). | Never |
-| [`/paper/tablet`](https://lifehub.nova-tech.dk/paper/tablet) | **Warm Paper · tablet** | Secondary warm-paper theme (URL-selected): family dashboard for a docked Pixel Tablet, 2560×1600, with automatic day/night. Pure display. | Never |
-| [`/paper/wallpaper`](https://lifehub.nova-tech.dk/paper/wallpaper) | **Warm Paper · wallpaper** | Ultrawide ambient layer (5120×1440) that sits behind windows — calm drift, next days, weather. Auto day↔night on sunrise/sunset. Pure display. | Never |
-| [`/paper/wallpaper/dark`](https://lifehub.nova-tech.dk/paper/wallpaper/dark) | **Warm Paper · wallpaper (dark)** | Same surface, forced dark palette 24/7 (ignores sunrise/sunset). | Never |
+| [`/`](https://lifehub.nova-tech.dk/) | **Dashboard** | Interactive, phone-first per-user view: brief, calendar, tasks, Aula, post, madplan, beholdning, transit. Task checkboxes write back to Vikunja. | Finance + inbox for admin |
+| [`/ambient`](https://lifehub.nova-tech.dk/ambient) | **Ambient · rum-ur** | Read-only shared surface for Wallpaper Engine / kitchen tablet. Auto-picks ultrawide (5120×1440 with solar-system “wings”) or tablet (1920×1200) by aspect ratio. | No finance/inbox · Aula shared |
+| [`/ambient/orbit`](https://lifehub.nova-tech.dk/ambient/orbit) | **Ambient · orbit** | Full-screen “observatory”: living planet driven by real sunrise/sunset + weather, event particles, and live system stats (LLM passes, triage counts, prompts). | No finance/inbox · Aula shared |
+| [`/paper/tablet`](https://lifehub.nova-tech.dk/paper/tablet) | **Warm Paper · tablet** | Secondary warm-paper theme (URL-selected): family dashboard for a docked Pixel Tablet, 2560×1600, with automatic day/night. Pure display. | No finance/inbox · Aula shared |
+| [`/paper/wallpaper`](https://lifehub.nova-tech.dk/paper/wallpaper) | **Warm Paper · wallpaper** | Ultrawide ambient layer (5120×1440) that sits behind windows — calm drift, next days, weather. Auto day↔night on sunrise/sunset. Pure display. | No finance/inbox · Aula shared |
+| [`/paper/wallpaper/dark`](https://lifehub.nova-tech.dk/paper/wallpaper/dark) | **Warm Paper · wallpaper (dark)** | Same surface, forced dark palette 24/7 (ignores sunrise/sunset). | No finance/inbox · Aula shared |
 | [`/paper/panel`](https://lifehub.nova-tech.dk/paper/panel) | **Warm Paper · panel** | Interactive triage panel (1920×1080): approve / archive / defer inbox items, a DRIFT status footer. Auto day↔night. **Admin only** (or a trusted device via `PANEL_INBOX_OPEN`). | Post shown; finance never |
 | [`/paper/panel/dark`](https://lifehub.nova-tech.dk/paper/panel/dark) | **Warm Paper · panel (dark)** | Same panel, forced dark palette 24/7. **Admin only** (or a trusted device via `PANEL_INBOX_OPEN`). | Post shown; finance never |
 
@@ -58,7 +60,7 @@ Everything under `/api/*` sits behind Cloudflare Access; `/telegram/webhook/*` i
 |---|---|
 | `GET /healthz` | Liveness probe |
 | `GET /api/dashboard` | Full per-user aggregate document (finance for admins) |
-| `GET /api/ambient` | Shared-surface document — no finance, no mail |
+| `GET /api/ambient` | Shared-surface document — no finance, no inbox (Aula *is* included as shared family info) |
 | `GET /api/ambient/stats` | Orbit system stats (LLM passes, triage/prompt counters), cached 45 s |
 | `GET /api/ambient/events` | Orbit event pulse (`after_id` cursor; only `kind`/`label`) |
 | `POST /api/tasks/{id}/done` | Checkbox write-back to Vikunja |
