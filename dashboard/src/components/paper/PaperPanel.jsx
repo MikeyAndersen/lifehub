@@ -3,6 +3,7 @@
    fader ud med det samme og genindsættes med en stille notits ved fejl. */
 import { useEffect, useState } from 'react';
 import { usePaperData } from './usePaperData.js';
+import { isNight } from './paperNight.js';
 import { fetchPanelStatus, postTriageAction, archiveNewsletters } from '../../lib/api.js';
 import { partitionInbox, postBadge, primaryAction, quietAction, dueLine,
          classBadge, stripEmoji } from './paperLogic.js';
@@ -48,7 +49,7 @@ function InboxRow({ item, onAction, failed }) {
   );
 }
 
-export default function PaperPanel() {
+export default function PaperPanel({ dark = false }) {
   const { doc, error, now } = usePaperData(false);
   const [status, setStatus] = useState(null);
   const [hidden, setHidden] = useState(new Set());   // optimistisk skjulte ids
@@ -65,7 +66,12 @@ export default function PaperPanel() {
     return () => { alive = false; clearInterval(id); };
   }, []);
 
-  if (!doc) return <div className="paper-root" />;
+  // /paper/panel følger solen (mørk efter solnedgang); /paper/panel/dark tvinger
+  // mørk hele døgnet. Uden vejr-data falder isNight tilbage på 22–06.
+  const night = dark || isNight(now, doc?.weather);
+  const mode = night ? 'night' : undefined;
+
+  if (!doc) return <div className="paper-root" data-mode={mode} />;
 
   const act = (item, action) => {
     setHidden((h) => new Set(h).add(item.id));
@@ -94,7 +100,7 @@ export default function PaperPanel() {
   const dateLine = now.toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
-    <div className="paper-root" style={{ padding: '56px 64px', display: 'flex',
+    <div className="paper-root" data-mode={mode} style={{ padding: '56px 64px', display: 'flex',
                                          flexDirection: 'column', fontSize: 16 }}>
       {/* — header med tung 2px-linje — */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
@@ -183,9 +189,9 @@ export default function PaperPanel() {
             )}
           </div>
         </div>
-        {/* — kolonne 3: skole/aula + DRIFT — */}
+        {/* — kolonne 3: Aula + DRIFT — */}
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <SectionLabel>SKOLE / AULA</SectionLabel>
+          <SectionLabel>AULA</SectionLabel>
           <div style={{ display: 'flex', flexDirection: 'column', marginTop: 10 }}>
             {aulaRows.map((a, i) => {
               const badge = classBadge(a.title);

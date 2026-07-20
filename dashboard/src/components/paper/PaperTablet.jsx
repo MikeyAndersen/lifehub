@@ -4,6 +4,7 @@ import { usePaperData } from './usePaperData.js';
 import { isNight } from './paperNight.js';
 import { pickHighlights, tomorrowOverview, classBadge, stripEmoji, dueLine } from './paperLogic.js';
 import { fmtClock, weatherLabel } from '../../lib/format.js';
+import WeatherIcon from './WeatherIcon.jsx';
 
 const Label = ({ children, accent, right }) => (
   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -80,8 +81,10 @@ export default function PaperTablet() {
             opdateret {doc.generated_at?.slice(11, 16)} · offline
           </div>
         ) : (
-          <div style={{ fontSize: 38, color: 'var(--muted)', marginTop: 14 }}>
-            {weatherLine}
+          <div style={{ fontSize: 38, color: 'var(--muted)', marginTop: 14,
+                        display: 'flex', alignItems: 'center', gap: 18 }}>
+            {w && <WeatherIcon code={w.code} size={46} strokeWidth={1.5} />}
+            <span>{weatherLine}</span>
           </div>
         )}
         <div style={{ marginTop: 'auto' }}>
@@ -137,7 +140,7 @@ export default function PaperTablet() {
           </div>
         )}
         <div>
-          <Label>SKOLE</Label>
+          <Label>AULA</Label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 30, marginTop: 24 }}>
             {aulaRows.map((a, i) => {
               const badge = classBadge(a.title);

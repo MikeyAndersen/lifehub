@@ -23,7 +23,7 @@ export function classBadge(title) {
 
 const KIND_LABELS = {
   kommune: 'KOMMUNE', bank: 'BANK', forsikring: 'FORSIKRING',
-  sundhed: 'SUNDHED', skole: 'SKOLE', forening: 'FORENING',
+  sundhed: 'SUNDHED', skole: 'AULA', forening: 'FORENING',
   butik: 'BUTIK', nyhedsbrev: 'LAV PRIORITET', andet: 'INFO',
 };
 

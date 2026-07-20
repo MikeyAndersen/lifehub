@@ -41,8 +41,10 @@ All pages are served from the same origin as the API, so use your deployed base 
 | [`/ambient`](https://lifehub.nova-tech.dk/ambient) | **Ambient · rum-ur** | Read-only shared surface for Wallpaper Engine / kitchen tablet. Auto-picks ultrawide (5120×1440 with solar-system “wings”) or tablet (1920×1200) by aspect ratio. | Never |
 | [`/ambient/orbit`](https://lifehub.nova-tech.dk/ambient/orbit) | **Ambient · orbit** | Full-screen “observatory”: living planet driven by real sunrise/sunset + weather, event particles, and live system stats (LLM passes, triage counts, prompts). | Never |
 | [`/paper/tablet`](https://lifehub.nova-tech.dk/paper/tablet) | **Warm Paper · tablet** | Secondary warm-paper theme (URL-selected): family dashboard for a docked Pixel Tablet, 2560×1600, with automatic day/night. Pure display. | Never |
-| [`/paper/wallpaper`](https://lifehub.nova-tech.dk/paper/wallpaper) | **Warm Paper · wallpaper** | Ultrawide ambient layer (5120×1440) that sits behind windows — calm drift, next days, weather. Pure display. | Never |
-| [`/paper/panel`](https://lifehub.nova-tech.dk/paper/panel) | **Warm Paper · panel** | Interactive triage panel (1920×1080): approve / archive / defer inbox items, a DRIFT status footer. **Admin only.** | Post shown; finance never |
+| [`/paper/wallpaper`](https://lifehub.nova-tech.dk/paper/wallpaper) | **Warm Paper · wallpaper** | Ultrawide ambient layer (5120×1440) that sits behind windows — calm drift, next days, weather. Auto day↔night on sunrise/sunset. Pure display. | Never |
+| [`/paper/wallpaper/dark`](https://lifehub.nova-tech.dk/paper/wallpaper/dark) | **Warm Paper · wallpaper (dark)** | Same surface, forced dark palette 24/7 (ignores sunrise/sunset). | Never |
+| [`/paper/panel`](https://lifehub.nova-tech.dk/paper/panel) | **Warm Paper · panel** | Interactive triage panel (1920×1080): approve / archive / defer inbox items, a DRIFT status footer. Auto day↔night. **Admin only.** | Post shown; finance never |
+| [`/paper/panel/dark`](https://lifehub.nova-tech.dk/paper/panel/dark) | **Warm Paper · panel (dark)** | Same panel, forced dark palette 24/7. **Admin only.** | Post shown; finance never |
 
 From the interactive dashboard, the **“Ambient visning ▾”** menu in the top bar links to
 every surface above.

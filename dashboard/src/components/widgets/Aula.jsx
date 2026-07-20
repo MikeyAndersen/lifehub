@@ -46,7 +46,7 @@ export default function Aula({ aula }) {
       ))}
       {info.length > 0 && (
         <>
-          <div className="day-label">Info fra skolen</div>
+          <div className="day-label">Info fra Aula</div>
           {info.slice(0, 6).map((it, i) => (
             <div className="task-row" key={`i${i}`}>
               <span className="task-box">📧</span>

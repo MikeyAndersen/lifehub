@@ -4,11 +4,13 @@ import { useEffect, useRef, useState } from 'react';
    Space-temaet (rum-ur + orbit) og Warm Paper-temaet (tablet/wallpaper/panel).
    Lukker ved klik udenfor og på Escape; simpel <a>-navigation, ingen router. */
 const AMBIENT_LINKS = [
-  { href: '/ambient',           label: 'Ambient · rum-ur',       hint: 'Delt flade — Wallpaper Engine / køkkentablet' },
-  { href: '/ambient/orbit',     label: 'Ambient · orbit',        hint: 'Observatorie-fuldskærm med systemstats' },
-  { href: '/paper/tablet',      label: 'Warm Paper · tablet',    hint: 'Familie-dashboard, dag/nat' },
-  { href: '/paper/wallpaper',   label: 'Warm Paper · wallpaper', hint: 'Ultrawide baggrundslag bag vinduer' },
-  { href: '/paper/panel',       label: 'Warm Paper · panel',     hint: 'Handlingspanel (admin)' },
+  { href: '/ambient',              label: 'Ambient · rum-ur',       hint: 'Delt flade — Wallpaper Engine / køkkentablet' },
+  { href: '/ambient/orbit',        label: 'Ambient · orbit',        hint: 'Observatorie-fuldskærm med systemstats' },
+  { href: '/paper/tablet',         label: 'Warm Paper · tablet',    hint: 'Familie-dashboard, dag/nat' },
+  { href: '/paper/wallpaper',      label: 'Warm Paper · wallpaper', hint: 'Ultrawide baggrundslag — følger solen' },
+  { href: '/paper/wallpaper/dark', label: 'Warm Paper · wallpaper (mørk)', hint: 'Samme, tvunget mørk hele døgnet' },
+  { href: '/paper/panel',          label: 'Warm Paper · panel',     hint: 'Handlingspanel (admin) — følger solen' },
+  { href: '/paper/panel/dark',     label: 'Warm Paper · panel (mørk)', hint: 'Samme, tvunget mørk hele døgnet' },
 ];
 
 export default function AmbientMenu() {
