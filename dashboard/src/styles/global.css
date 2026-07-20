@@ -224,6 +224,37 @@ body {
 }
 .linkish:hover { color: var(--lh-text-2); }
 
+/* Ambient-menu — dropdown i topbaren med alle visnings-flader */
+.ambient-menu { position: relative; align-self: center; }
+.ambient-menu-caret { font-size: 10px; opacity: 0.8; }
+.ambient-menu-pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 40;
+  min-width: 240px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-radius: 12px;
+  background: rgba(16, 26, 46, 0.94);
+  backdrop-filter: blur(var(--blur-card));
+  border: 1px solid rgba(148, 163, 190, 0.18);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.38);
+}
+.ambient-menu-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-decoration: none;
+}
+.ambient-menu-item:hover { background: rgba(148, 163, 190, 0.10); }
+.ambient-menu-label { font-size: 13px; color: var(--lh-text); }
+.ambient-menu-hint { font-size: 11px; color: var(--lh-text-3); }
+
 /* Hero — dagens brief */
 .hero {
   position: relative;

@@ -3,6 +3,7 @@ import { fetchDashboard, regenerateBrief } from '../lib/api.js';
 import { fmtClock } from '../lib/format.js';
 import { startDaycycle } from '../lib/daycycle.js';
 import Backdrop from './Backdrop.jsx';
+import AmbientMenu from './AmbientMenu.jsx';
 import Hero from './widgets/Hero.jsx';
 import Kalender from './widgets/Kalender.jsx';
 import Opgaver from './widgets/Opgaver.jsx';
@@ -66,7 +67,7 @@ export default function Dashboard() {
         </div>
         <div className="topbar-right">
           <span className="topbar-clock mono">{fmtClock(now)}</span>
-          <a className="linkish" href="/ambient">Ambient visning</a>
+          <AmbientMenu />
         </div>
       </header>
 
