@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LifeHub Ambient</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0A1120; }
+  #amb { position: fixed; inset: 0; width: 100vw; height: 100vh; border: 0; display: block; }
+  #msg {
+    position: fixed; inset: 0; display: none; place-items: center; text-align: center;
+    background: #0A1120; color: #94a3b8; font: 16px/1.6 system-ui, -apple-system, sans-serif;
+  }
+  #msg small { color: #475569; }
+</style>
+</head>
+<body>
+  <!-- LifeHub ambient-flade serveres af caddy på LXC 103 over LAN.
+       Wrapperen findes kun fordi Wallpaper Engine loader en lokal fil, ikke en URL direkte. -->
+  <iframe id="amb" allow="fullscreen"></iframe>
+  <div id="msg">Forbinder til LifeHub…<br><small></small></div>
+
+  <script>
+    // Skift kun denne linje hvis LXC 103's IP eller caddy-porten ændrer sig.
+    const AMBIENT_URL = 'http://192.168.0.145:8080/ambient';
+
+    const frame = document.getElementById('amb');
+    const msg = document.getElementById('msg');
+    msg.querySelector('small').textContent = AMBIENT_URL;
+
+    let loaded = false;
+
+    frame.addEventListener('load', () => {
+      // 'load' fyrer også cross-origin — vi kan ikke læse indholdet, men ved at det kom op.
+      loaded = true;
+      msg.style.display = 'none';
+    });
+
+    function open(url) {
+      loaded = false;
+      // Cache-buster så en genindlæsning altid henter en frisk side efter genstart.
+      frame.src = url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+    }
+
+    // Watchdog: er fladen ikke oppe inden 8 s (server/PC lige genstartet?),
+    // vis en diskret besked og prøv igen. Kører til det lykkes.
+    setInterval(() => {
+      if (loaded) return;
+      msg.style.display = 'grid';
+      open(AMBIENT_URL);
+    }, 8000);
+
+    // Frisk genindlæsning hver time, så en skærm der har kørt i dagevis ikke driver.
+    setInterval(() => open(AMBIENT_URL), 60 * 60 * 1000);
+
+    open(AMBIENT_URL);
+  </script>
+</body>
+</html>

@@ -118,3 +118,43 @@ curl -X POST http://192.168.0.145:8300/api/post/poll
 Støj (`status='skipped'`) registreres men klassificeres aldrig; `low` uden
 handling droppes efter klassifikation. Kun `high`/frist-nære items giver
 straks-besked; `normal` info samles i digesten (vises én gang).
+
+## Ambient-flade på Wallpaper Engine (over LAN)
+
+Ambient-visningen (`/ambient`) køres som live-wallpaper via Wallpaper Engine
+ved at pege **direkte på caddy over LAN** — uden om Cloudflare-tunnelen.
+
+### Hvorfor det er sikkert
+
+PC og LXC 103 er på samme LAN. Cloudflare Access beskytter kun tunnel-vejen;
+ambient-fladen er bevidst den ufølsomme visning (`/api/ambient` sender **aldrig**
+finance eller post — det er derfor gatingen findes). Trafikken forlader aldrig
+huset, så der er hverken login, tokens eller Cloudflare i den kritiske sti.
+
+### Verifikation (bekræftet 2026-07-06)
+
+Caddy lytter allerede på LAN-interfacet på **port 8080** — både siden og
+data-stien er samme origin, så intet ekstra site-block var nødvendigt:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" http://192.168.0.145:8080/ambient      # 200 (Server: Caddy)
+curl -s -o /dev/null -w "%{http_code}\n" http://192.168.0.145:8080/api/ambient   # 200 (JSON, ingen økonomi)
+```
+
+Loader ambient kun via tunnelen (fx flyttet caddy-opsætning): tilføj et
+site-block der lytter på LAN, og justér porten nedenfor.
+
+### Opsætning i Wallpaper Engine
+
+Wallpaper Engine loader en lokal fil, ikke en URL direkte, så et lille
+wrapper-projekt loader LAN-URL'en i en fuldskærms-iframe (med genforbind-logik,
+så en genstart af PC/server ikke efterlader en død skærm). Kilden ligger i
+`ops/wallpaper-engine/lifehub-ambient/` og er kopieret til:
+
+```
+C:\Program Files (x86)\Steam\steamapps\common\wallpaper_engine\projects\myprojects\lifehub-ambient\
+```
+
+Åbn Wallpaper Engine → wallpaperet **"LifeHub Ambient"** står under dine egne
+(Installed) → vælg det → *Apply wallpaper*. Skifter LXC 103's IP eller
+caddy-porten: ret `AMBIENT_URL` øverst i `index.html` (begge steder).
